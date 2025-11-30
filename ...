@@ -1,0 +1,22 @@
+
+[config]
+	[tab_title]XXX XXX[tab_title_end]
+	[tab_icon]../../assets/icon.webp[tab_icon_end]
+[config_end]
+
+[style]
+	
+[style_end]
+
+[body]
+	[title]XXX XXX[title_end]
+	[para]
+		XXX XXX XXX XXX
+	[para_end]
+	[para]
+		XXX XXX XXX XXX
+	[para_end]
+	[button on_click=[link="https://github.com/nobody-but-me"]]XXX XXX[button_end]
+	[link=https://github.com/nobody-but-me]XXX XXX[link]
+	[image source="../../assets/image.webp"]image[image_end]
+[body_end]
