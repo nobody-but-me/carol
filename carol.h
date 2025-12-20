@@ -10,6 +10,7 @@ int concat(char**str_,const char*new_str_);
 
 int header(const char*body_);
 int paragraph(const char*body_);
+int image(const char*image_path_);
 
 void loop(void);
 
@@ -141,6 +142,19 @@ int paragraph(const char*body_){
 	if(body==NULL)
 		return -1;
 	snprintf(body,new_length,"<p>%s</p>",body_);
+	if(body==NULL)
+		return -1;
+	concat(&idx,body);
+	return 0;
+}
+int image(const char*image_path_){
+	char*tags="<img src=''/>";
+	char*body="";
+	size_t new_length=strlen(tags)+strlen(image_path_)+1;
+	body=(char*)malloc(strlen(tags)+strlen(image_path_)+1);
+	if(body==NULL)
+		return -1;
+	snprintf(body,new_length,"<img src='%s'/>",image_path_);
 	if(body==NULL)
 		return -1;
 	concat(&idx,body);

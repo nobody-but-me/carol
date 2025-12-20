@@ -4,15 +4,15 @@
 #include <stdio.h>
 
 void loop(void){
-	header("hello");
+	header("Welcome, Carol.");
 	paragraph("welcome to Carol, the C static website generator!");
 	header("hello again!");
 	paragraph("that's so freaking cool!");
+	image("https://asgooffeeasme.neocities.org/assets/writing-room-image-If0Uf6ww.webp");
 	return;
 }
 
 int main(int argc,char**argv){
-	printf("Welcome, Carol.\n");
 	const int PORT=4242;
 	if((init(PORT))==-1)
 		return -1;
