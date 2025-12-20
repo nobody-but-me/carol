@@ -6,13 +6,12 @@
 
 char*strrep(const char*orig_,const char*rep_,const char*with_);
 const char *ftos(const char *filename_);
-
-// int render_content(void);
+int concat(char**str_,const char*new_str_);
 
 int header(const char*body_);
 int paragraph(const char*body_);
 
-void render(void);
+void loop(void);
 
 int handle_client(void);//const int skt_);
 int init_server(struct sockaddr_in *address_, const int port_);
@@ -102,60 +101,56 @@ const char*ftos(const char*filename_){
 	return final_buffer;
 }
 
-//int render_content(void);
-char *idx="";
-
-static inline int concat(char *str_, const char*new_str_){
-	size_t str_length=strlen(str_);
-	size_t new_str_length=strlen(new_str_);
-	size_t new_length=str_length+new_str_length+1;
-	str_=(char*)malloc(new_length);
-	if(str_==NULL)
+int concat(char**str_, const char*new_str_){
+	size_t new_len=strlen(*str_)+strlen(new_str_)+1;
+	char*old_str=(char*)malloc(strlen(*str_)+1);
+	if(old_str==NULL)
 		return -1;
-	snprintf(str_,new_length,"%s%s",str_,new_str_);
-	if(str_==NULL)
+	strcpy(old_str,*str_);
+	*str_=(char*)malloc(new_len);
+	if(*str_==NULL)
 		return -1;
+	snprintf(*str_,new_len,"%s%s",old_str,new_str_);
+	if(*str_==NULL)
+		return -1;
+//	printf("str_: %s.\n",*str_);
 	return 0;
 }
 
+// dont like its global
+char *idx="";
+
 int header(const char*body_){
 	char*tags="<h1></h1>";
-	char*final_body="";
+	char*body="";
 	size_t new_length=strlen(tags)+strlen(body_)+1;
-	final_body=(char*)malloc(new_length);
-	if(final_body==NULL)
+	body=(char*)malloc(new_length);
+	if(body==NULL)
 		return -1;
-	snprintf(final_body,new_length,"<h1>%s</h1>",body_);
-	if(final_body==NULL)
+	snprintf(body,new_length,"<h1>%s</h1>",body_);
+	if(body==NULL)
 		return -1;
-	concat(idx,body_);
+	concat(&idx,body);
 	return 0;
 }
 int paragraph(const char*body_){
 	char*tags="<p></p>";
-	char*final_body="";
+	char*body="";
 	size_t new_length=strlen(tags)+strlen(body_)+1;
-	final_body=(char*)malloc(strlen(tags)+strlen(body_)+1);
-	if(final_body==NULL)
+	body=(char*)malloc(strlen(tags)+strlen(body_)+1);
+	if(body==NULL)
 		return -1;
-	snprintf(final_body,new_length,"<p>%s</p>",body_);
-	if(final_body==NULL)
+	snprintf(body,new_length,"<p>%s</p>",body_);
+	if(body==NULL)
 		return -1;
-	concat(idx,body_);
+	concat(&idx,body);
 	return 0;
-}
-
-void render(void){
-	printf("hello?\n");
-	handle_client();
-	return;
 }
 
 #define BUFFER_SIZE 1024
 
-int handle_client(void){//int skt_){
+int handle_client(void){
 	char buffer[BUFFER_SIZE]={0};
-//	if ((read(skt_,buffer,BUFFER_SIZE))==-1)
 	if((read(skt,buffer,BUFFER_SIZE))==-1)
 		goto NOT_FOUND;
 	char path[BUFFER_SIZE];
@@ -168,29 +163,24 @@ int handle_client(void){//int skt_){
 	if (strcmp(page,"favicon.ico")==0)
 		return 0;
 	snprintf(file_path,BUFFER_SIZE,PROJECT_FOLDER"%s",page);
-//	if(!file_path)
 	if((sizeof(file_path)/sizeof(file_path[0]))==0)
 		goto NOT_FOUND;
 // TODO: check if index is empty;
+	printf("final HTML buffer:\n\n%s\n\n",idx);
 	const char*index_content=ftos(file_path);
 	char *content=strrep(index_content,"[user_content]",idx);
 	if(content==NULL)
 		goto NOT_FOUND;
 	const char*http_header="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
-//	write(skt_,http_header,strlen(http_header));
-//	write(skt_,content,strlen(content));
 	write(skt,http_header,strlen(http_header));
 	write(skt,content,strlen(content));
 	
 	printf("client handled successfully.\n");
-//	close(skt_);
 	close(skt);
 	return 0;
 NOT_FOUND:
 	printf("404 not found.\n");
 	const char*not_found="HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<h1>404 Not Found</h1>";
-//	write(skt_,not_found,strlen(not_found));
-//	close(skt_);
 	write(skt,not_found,strlen(not_found));
 	close(skt);
 	return -1;
@@ -227,10 +217,6 @@ int init_server(struct sockaddr_in*address_, const int port_){
 }
 
 int init(const int port_){
-//	struct sockaddr_in address;
-//	int server;
-//	int socket;
-	
 	int address_length=sizeof(addr);
 	svr=init_server(&addr,port_);
 	if (svr==-1)
@@ -241,7 +227,8 @@ int init(const int port_){
 			fprintf(stderr,"connection have not been accepted.\n");
 			continue;
 		}
-//		handle_client(socket);
+		loop();
+		handle_client();
 	}
 	close(svr);
 	return 0;
