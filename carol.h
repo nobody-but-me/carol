@@ -241,6 +241,8 @@ int init(const int port_){
 			fprintf(stderr,"connection have not been accepted.\n");
 			continue;
 		}
+//don't know if that's the better approach for that
+		idx="";
 		loop();
 		handle_client();
 	}
