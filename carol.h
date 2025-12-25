@@ -12,6 +12,7 @@ int header(const char*body_);
 int paragraph(const char*body_);
 int image(const char*image_path_);
 
+void ready(void);
 void loop(void);
 
 int handle_client(void);//const int skt_);
@@ -119,49 +120,80 @@ int concat(char**str_, const char*new_str_){
 }
 
 // dont like its global
+int initialized=0;
+char last_tag[15];
 char *idx="";
 
 int header(const char*body_){
-	char*tags="<h1></h1>";
-	char*body="";
-	size_t new_length=strlen(tags)+strlen(body_)+1;
+	if(initialized==1)
+// perhaps you should not return one here :: it may lead to undefined behaviour
+		return 1;
+	char*tags="<h1>";char*body="";
+	size_t last_tag_length=(sizeof(last_tag)/sizeof(last_tag[0]));
+	
+	size_t new_length=last_tag_length+strlen(tags)+strlen(body_)+1;
 	body=(char*)malloc(new_length);
 	if(body==NULL)
 		return -1;
-	snprintf(body,new_length,"<h1>%s</h1>",body_);
+	if(last_tag_length>2)
+		snprintf(body,new_length,"%s<h1>%s",last_tag,body_);
+	else
+		snprintf(body,new_length,"<h1>%s",body_);
 	if(body==NULL)
 		return -1;
 	concat(&idx,body);
+	strncpy(last_tag,"</h1>",strlen(tags)+2);
 	return 0;
 }
 int paragraph(const char*body_){
-	char*tags="<p></p>";
-	char*body="";
-	size_t new_length=strlen(tags)+strlen(body_)+1;
+	if(initialized==1)
+		return 1;
+	char*tags="<p>";char*body="";
+	size_t last_tag_length=(sizeof(last_tag)/sizeof(last_tag[0]));
+	
+	size_t new_length=last_tag_length+strlen(tags)+strlen(body_)+1;
 	body=(char*)malloc(strlen(tags)+strlen(body_)+1);
 	if(body==NULL)
 		return -1;
-	snprintf(body,new_length,"<p>%s</p>",body_);
+	if(last_tag_length>2)
+		snprintf(body,new_length,"%s<p>%s",last_tag,body_);
+	else
+		snprintf(body,new_length,"<p>%s",body_);
 	if(body==NULL)
 		return -1;
 	concat(&idx,body);
+	strncpy(last_tag,"</p>",strlen(tags)+2);
 	return 0;
 }
 int image(const char*image_path_){
-	char*tags="<img src=''/>";
-	char*body="";
-	size_t new_length=strlen(tags)+strlen(image_path_)+1;
+	if(initialized==1)
+		return 1;
+	char*tags="<img src=''/>";char*body="";
+	size_t last_tag_length=(sizeof(last_tag)/sizeof(last_tag[0]));
+	
+	size_t new_length=last_tag_length+strlen(tags)+strlen(image_path_)+1;
 	body=(char*)malloc(strlen(tags)+strlen(image_path_)+1);
 	if(body==NULL)
 		return -1;
-	snprintf(body,new_length,"<img src='%s'/>",image_path_);
+	if(last_tag_length>2)
+		snprintf(body,new_length,"%s<img src='%s'/>",last_tag,image_path_);
+	else
+		snprintf(body,new_length,"<img src='%s'/>",image_path_);
 	if(body==NULL)
 		return -1;
 	concat(&idx,body);
+	strncpy(last_tag," ",2);
 	return 0;
 }
 
 #define BUFFER_SIZE 1024
+
+void ready(void){
+	strncpy(last_tag," ",2);
+	last_tag[(sizeof(last_tag)/sizeof(last_tag[0]))-1]='\0';
+	idx="";
+	return;
+}
 
 int handle_client(void){
 	char buffer[BUFFER_SIZE]={0};
@@ -191,6 +223,8 @@ int handle_client(void){
 	
 	printf("client handled successfully.\n");
 	close(skt);
+	
+	initialized=1;
 	return 0;
 NOT_FOUND:
 	printf("404 not found.\n");
@@ -241,12 +275,12 @@ int init(const int port_){
 			fprintf(stderr,"connection have not been accepted.\n");
 			continue;
 		}
-//don't know if that's the better approach for that
-		idx="";
+		ready();
 		loop();
 		handle_client();
 	}
 	close(svr);
+	free(idx);
 	return 0;
 }
 

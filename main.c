@@ -3,6 +3,18 @@
 #include "carol.h"
 #include <stdio.h>
 
+/*
+
+division();
+	paragraph("paragraph");
+	_paragraph();
+	
+	image("path");
+	_image();
+_division();
+
+*/
+
 void loop(void){
 	header("Welcome, Carol.");
 	paragraph("welcome to Carol, the C static website generator!");
