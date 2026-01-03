@@ -3,5 +3,5 @@
 
 rm -rf ./build/
 
-cd ..
+rm -rf ./site/
 

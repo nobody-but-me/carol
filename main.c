@@ -3,24 +3,12 @@
 #include "carol.h"
 #include <stdio.h>
 
-/*
-
-division();
-	paragraph("paragraph");
-	_paragraph();
-	
-	image("path");
-	_image();
-_division();
-
-*/
-
 void loop(void){
 	header("Welcome, Carol.");
-	paragraph("welcome to Carol, the C static website generator!");
-	header("hello again!");
-	paragraph("that's so freaking cool!");
-	image("https://asgooffeeasme.neocities.org/assets/writing-room-image-If0Uf6ww.webp");
+	paragraph("welcome to Carol, the C static website generator (now really generating html files)!");
+	hyperlink("Click Me!","https://asgooffeeasme.neocities.org");
+	paragraph("another paragraph!");
+	image("https://asgooffeeasme.neocities.org/assets/writing-room-image-If0Uf6ww.webp");// TODO: remove hotlinking
 	return;
 }
 

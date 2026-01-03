@@ -11,6 +11,7 @@ int concat(char**str_,const char*new_str_);
 int header(const char*body_);
 int paragraph(const char*body_);
 int image(const char*image_path_);
+int hyperlink(const char*body_,const char*hyperlink_);
 
 void ready(void);
 void loop(void);
@@ -30,7 +31,7 @@ int init(const int port_);
 #include <unistd.h>
 #include <errno.h>
 
-#define PROJECT_FOLDER "../../"//NOTE: this must be removed later.
+#define PROJECT_FOLDER "../../site/"//NOTE: this must be removed later.
 
 // i don't like the fact these variables are global.
 struct sockaddr_in addr;
@@ -152,7 +153,7 @@ int paragraph(const char*body_){
 	size_t last_tag_length=(sizeof(last_tag)/sizeof(last_tag[0]));
 	
 	size_t new_length=last_tag_length+strlen(tags)+strlen(body_)+1;
-	body=(char*)malloc(strlen(tags)+strlen(body_)+1);
+	body=(char*)malloc(new_length);
 	if(body==NULL)
 		return -1;
 	if(last_tag_length>2)
@@ -165,6 +166,27 @@ int paragraph(const char*body_){
 	strncpy(last_tag,"</p>",strlen(tags)+2);
 	return 0;
 }
+int hyperlink(const char*body_,const char*hyperlink_){
+	if(initialized==1)
+		return 1;
+	char*tags="<a href=''>";char*body="";
+	size_t last_tag_length=(sizeof(last_tag)/sizeof(last_tag[0]));
+	
+	size_t new_length=last_tag_length+strlen(tags)+strlen(body_)+strlen(hyperlink_)+1;
+	body=(char*)malloc(new_length);
+	if(body==NULL)
+		return -1;
+	if(last_tag_length>2)
+		snprintf(body,new_length,"%s<a href='%s'>%s",last_tag,hyperlink_,body_);
+	else
+		snprintf(body,new_length,"<a href='%s'>%s",hyperlink_,body_);
+	if(body==NULL)
+		return -1;
+	concat(&idx,body);
+	strncpy(last_tag,"</a>",strlen(tags)+2);
+	return 0;
+}
+
 int image(const char*image_path_){
 	if(initialized==1)
 		return 1;
@@ -172,7 +194,7 @@ int image(const char*image_path_){
 	size_t last_tag_length=(sizeof(last_tag)/sizeof(last_tag[0]));
 	
 	size_t new_length=last_tag_length+strlen(tags)+strlen(image_path_)+1;
-	body=(char*)malloc(strlen(tags)+strlen(image_path_)+1);
+	body=(char*)malloc(new_length);
 	if(body==NULL)
 		return -1;
 	if(last_tag_length>2)
@@ -187,6 +209,7 @@ int image(const char*image_path_){
 }
 
 #define BUFFER_SIZE 1024
+#define STR_BUFFER_LENGTH 64
 
 void ready(void){
 	strncpy(last_tag," ",2);
@@ -194,6 +217,9 @@ void ready(void){
 	idx="";
 	return;
 }
+
+char *html_head="<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Razomentalist</title></head><body>";
+char *html_footer="</body></html>";
 
 int handle_client(void){
 	char buffer[BUFFER_SIZE]={0};
@@ -203,28 +229,51 @@ int handle_client(void){
 	char method[8];
 	
 	sscanf(buffer,"%s %s",method,path);
-
+	
+// hopefully it'll be useful in the future
 	const char*page=strcmp(path,"/")==0?"index.html":path+1;
-	char file_path[BUFFER_SIZE];
+	char filepath[128];
 	if (strcmp(page,"favicon.ico")==0)
 		return 0;
-	snprintf(file_path,BUFFER_SIZE,PROJECT_FOLDER"%s",page);
-	if((sizeof(file_path)/sizeof(file_path[0]))==0)
+	snprintf(filepath,128,PROJECT_FOLDER"%s",page);
+	if((sizeof(filepath)/sizeof(filepath[0]))==0)
 		goto NOT_FOUND;
-// TODO: check if index is empty;
+	
+	if(strlen(idx)<=1)
+		return -1;
 	printf("final HTML buffer:\n\n%s\n\n",idx);
-	const char*index_content=ftos(file_path);
-	char *content=strrep(index_content,"[user_content]",idx);
-	if(content==NULL)
+	
+	char *content=NULL;
+	size_t length;
+	FILE*f=fopen(filepath,"w");
+	
+	if(f){
+		fputs(html_head,f);
+			fputs(idx,f);
+		fputs(html_footer,f);
+		fclose(f);f=fopen(filepath,"rb");//do i really need to close and reopen the file after fputs()?
+//  -- -- -- -- -- 
+		fseek(f,0,SEEK_END);
+		length=ftell(f);
+		fseek(f,0,SEEK_SET);
+		content=(char*)malloc(length+1);
+		if(content)
+			fread(content,1,length,f);
+		printf("content:\n\n%s\n\n",content);
+		fclose(f);
+	}
+	if(content){
+		const char*http_header="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+		write(skt,http_header,strlen(http_header));
+		write(skt,content,strlen(content));
+		
+		printf("client handled successfully.\n");
+		close(skt);
+	
+		initialized=1;
+	} else
 		goto NOT_FOUND;
-	const char*http_header="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
-	write(skt,http_header,strlen(http_header));
-	write(skt,content,strlen(content));
-	
-	printf("client handled successfully.\n");
-	close(skt);
-	
-	initialized=1;
+	free(content);
 	return 0;
 NOT_FOUND:
 	printf("404 not found.\n");
