@@ -16,10 +16,10 @@ int hyperlink(const char*body_,const char*hyperlink_);
 void ready(void);
 void loop(void);
 
-int handle_client(void);//const int skt_);
-int init_server(struct sockaddr_in *address_, const int port_);
+int init_server(struct sockaddr_in*address_,const  int port_);
+int handle_client(void);
 
-int init(const int port_);
+int init(const unsigned int port_);
 
 #endif//_CAROL_H
 #ifdef CAROL_IMPLEMENTATION
@@ -313,14 +313,14 @@ int init_server(struct sockaddr_in*address_, const int port_){
 	return server;
 }
 
-int init(const int port_){
+int init(const unsigned int port_){
 	int address_length=sizeof(addr);
 	svr=init_server(&addr,port_);
 	if (svr==-1)
 		return -1;
 	printf("server is running at http://localhost:%d.\n",port_);
 	while (1){
-		if((skt=accept(svr,(struct sockaddr*)&addr,(socklen_t*)&address_length))<0) {
+		if((skt=accept(svr,(struct sockaddr*)&addr,(socklen_t*)&address_length))<0){
 			fprintf(stderr,"connection have not been accepted.\n");
 			continue;
 		}

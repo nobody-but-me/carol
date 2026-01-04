@@ -13,7 +13,7 @@ void loop(void){
 }
 
 int main(int argc,char**argv){
-	const int PORT=4242;
+	const unsigned int PORT=4242;
 	if((init(PORT))==-1)
 		return -1;
 	return 0;
