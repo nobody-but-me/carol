@@ -5,7 +5,7 @@
 
 void loop(void){
 	header("Welcome, Carol.");
-	paragraph("welcome to Carol, the C static website generator (now really generating html files)!");
+	paragraph("welcome to Carol, the header-only C static website generator (now really generating html files)!");
 	hyperlink("Click Me!","https://asgooffeeasme.neocities.org");
 	paragraph("another paragraph!");
 	image("https://asgooffeeasme.neocities.org/assets/writing-room-image-If0Uf6ww.webp");// TODO: remove hotlinking

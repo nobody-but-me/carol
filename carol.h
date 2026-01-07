@@ -36,6 +36,7 @@ int init(const unsigned int port_);
 // i don't like the fact these variables are global.
 struct sockaddr_in addr;
 int svr; int skt;
+int PORT;
 
 char*strrep(const char*orig_,const char*rep_,const char*with_){
 	int len_rep,len_with,len_front,count;
@@ -192,15 +193,33 @@ int image(const char*image_path_){
 		return 1;
 	char*tags="<img src=''/>";char*body="";
 	size_t last_tag_length=(sizeof(last_tag)/sizeof(last_tag[0]));
+// enabling hotlinking and local handling of files
+	char *img_path;
+	if(strstr(image_path_,"http://")==image_path_||strstr(image_path_,"https://")==image_path_){
+		img_path=(char*)malloc(strlen(image_path_)+1);
+		if(!img_path)
+			return -1;
+		strcpy(img_path,image_path_);
+	}
+	else {
+		const char*localhost="http://localhost:"; char port[8];
+		if((sprintf(port,"%d",PORT))<0)
+			return -1;
+		size_t length=strlen(image_path_)+strlen(localhost)+strlen(port)+2;
+		img_path=(char*)malloc(length);
+		if(!img_path)
+			return -1;
+		snprintf(img_path,length,"%s%s/%s",localhost,port,image_path_);
+	}
 	
-	size_t new_length=last_tag_length+strlen(tags)+strlen(image_path_)+1;
+	size_t new_length=last_tag_length+strlen(tags)+strlen(img_path)+1;
 	body=(char*)malloc(new_length);
 	if(body==NULL)
 		return -1;
 	if(last_tag_length>2)
-		snprintf(body,new_length,"%s<img src='%s'/>",last_tag,image_path_);
+		snprintf(body,new_length,"%s<img src='%s'/>",last_tag,img_path);
 	else
-		snprintf(body,new_length,"<img src='%s'/>",image_path_);
+		snprintf(body,new_length,"<img src='%s'/>",img_path);
 	if(body==NULL)
 		return -1;
 	concat(&idx,body);
@@ -221,23 +240,40 @@ void ready(void){
 char *html_head="<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Razomentalist</title></head><body>";
 char *html_footer="</body></html>";
 
+static const char*get_mime(const char*file_ext){
+	if(strcasecmp(file_ext,".html")==0||strcasecmp(file_ext,".htm")==0)
+		return "text/html";
+	else if(strcasecmp(file_ext,".txt")==0)
+		return "text/plain";
+	else if(strcasecmp(file_ext,".jpg")==0||strcasecmp(file_ext,".jpeg")==0)
+		return "image/jpeg";
+	else if(strcasecmp(file_ext,".png")==0)
+		return "image/png";
+	else if(strcasecmp(file_ext,".webp")==0)
+		return "image/webp";
+	return "application/octet-stream";
+}
+
 int handle_client(void){
 	char buffer[BUFFER_SIZE]={0};
-	if((read(skt,buffer,BUFFER_SIZE))==-1)
+	if((read(skt,buffer,BUFFER_SIZE))==-1){
+		fprintf(stderr,"couldn't read socket.\n");
 		goto NOT_FOUND;
+	}
 	char path[BUFFER_SIZE];
 	char method[8];
 	
 	sscanf(buffer,"%s %s",method,path);
 	
-// hopefully it'll be useful in the future
 	const char*page=strcmp(path,"/")==0?"index.html":path+1;
 	char filepath[128];
 	if (strcmp(page,"favicon.ico")==0)
 		return 0;
 	snprintf(filepath,128,PROJECT_FOLDER"%s",page);
-	if((sizeof(filepath)/sizeof(filepath[0]))==0)
+	if((sizeof(filepath)/sizeof(filepath[0]))==0){
+		fprintf(stderr,"invalid filepath\n");
 		goto NOT_FOUND;
+	}
 	
 	if(strlen(idx)<=1)
 		return -1;
@@ -246,34 +282,54 @@ int handle_client(void){
 	char *content=NULL;
 	size_t length;
 	FILE*f=fopen(filepath,"w");
-	
-	if(f){
-		fputs(html_head,f);
-			fputs(idx,f);
-		fputs(html_footer,f);
-		fclose(f);f=fopen(filepath,"rb");//do i really need to close and reopen the file after fputs()?
-//  -- -- -- -- -- 
-		fseek(f,0,SEEK_END);
-		length=ftell(f);
-		fseek(f,0,SEEK_SET);
-		content=(char*)malloc(length+1);
-		if(content)
-			fread(content,1,length,f);
-		printf("content:\n\n%s\n\n",content);
-		fclose(f);
+	const char*dot=strrchr(page,'.');
+	char*file_extension;
+	if(!dot||dot==page){
+		fprintf(stderr,"dot error");
+		goto NOT_FOUND;//i don't like this
 	}
-	if(content){
-		const char*http_header="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
-		write(skt,http_header,strlen(http_header));
-		write(skt,content,strlen(content));
-		
-		printf("client handled successfully.\n");
-		close(skt);
-	
-		initialized=1;
-	} else
+	file_extension=(char*)malloc(strlen(dot)+1);
+	if(file_extension==NULL){
+		fprintf(stderr,"file_extension error");
 		goto NOT_FOUND;
-	free(content);
+	}
+	file_extension=strcpy(file_extension,dot);
+	
+	if(strcasecmp(file_extension,".html")==0||strcasecmp(file_extension,".htm")==0){
+		if(f){
+			fputs(html_head,f);
+				fputs(idx,f);
+			fputs(html_footer,f);
+			fclose(f);f=fopen(filepath,"rb");//do i really need to close and reopen the file after fputs()?
+//  -- -- -- -- -- 
+			fseek(f,0,SEEK_END);
+			length=ftell(f);
+			fseek(f,0,SEEK_SET);
+			content=(char*)malloc(length+1);
+			if(content)
+				fread(content,1,length,f);
+			printf("content:\n\n%s\n\n",content);
+			fclose(f);
+		}
+	}
+//		const char*http_header="HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
+	const char *mime=get_mime(file_extension);
+	char*h="HTTP/1.1 200 OK\r\nContent-Type: \r\n\r\n";
+	char*http_header;
+	http_header=(char*)malloc(strlen(h)+strlen(mime)+1);
+	snprintf(http_header,strlen(h)+strlen(mime)+1,"HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n",mime);
+	if(http_header==NULL){
+		fprintf(stderr,"http_header error");
+		goto NOT_FOUND;
+	}
+		write(skt,http_header,strlen(http_header));
+	if(content){
+		write(skt,content,strlen(content));
+		free(content);
+	}
+	printf("client handled successfully.\n");
+	close(skt);
+	initialized=1;
 	return 0;
 NOT_FOUND:
 	printf("404 not found.\n");
@@ -319,6 +375,7 @@ int init(const unsigned int port_){
 	if (svr==-1)
 		return -1;
 	printf("server is running at http://localhost:%d.\n",port_);
+	PORT=port_;
 	while (1){
 		if((skt=accept(svr,(struct sockaddr*)&addr,(socklen_t*)&address_length))<0){
 			fprintf(stderr,"connection have not been accepted.\n");

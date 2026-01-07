@@ -35,7 +35,7 @@ int main(int argc, char**argv)
 ```
 
 And that's it! The functions used to build your website such as ```header(const char*)``` or ```paragraph(const char*)```
-must be called within a function called ```loop```:
+must be called within a function called ```loop```, as shown below:
 
 ```c
 
@@ -47,4 +47,4 @@ void loop(void)
 
 ```
 
-So then, when running your application, you must already see the localhost address to be opened in your browser.
+So then, when running your application, you must already see the localhost address printed in your terminal.
