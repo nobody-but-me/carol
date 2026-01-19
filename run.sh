@@ -4,11 +4,11 @@
 if [ -f ./build/bin/carol ]; then
     echo "[INFO]: RUNNING...\n"
     
-    cd ./build/bin/
+#    cd ./build/bin/
     
-    ./carol
+    ./build/bin/carol
     
-    cd ..
+#    cd ..
 else
 	echo  "[ERROR]: Could not run application: Executable does not exit or has some error. \n"
 fi

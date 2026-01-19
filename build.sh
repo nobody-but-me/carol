@@ -7,7 +7,10 @@ echo "[CONFIG]: Do you want to run the project right after building it? (y or n)
 read -p " > " run
 
 echo "[INFO]: CREATING BUILD FOLDER..."
-mkdir -p ./build ./site && cd ./build
+
+# mkdir -p ./project # TODO: this folder must be created by Carol's C header.
+
+mkdir -p ./build && cd ./build
 
 if [ "$build" = "y" ]; then
     echo "[INFO]: GENERATING NINJA FILES..."

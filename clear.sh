@@ -3,5 +3,5 @@
 
 rm -rf ./build/
 
-rm -rf ./site/
+rm -rf index.html
 
