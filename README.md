@@ -4,7 +4,7 @@
 Carol is a header-only static website generator written in C programming language. Following the philosophy of 
 [j3s](https://j3s.sh/thought/my-website-is-one-binary.html), Carol generates HTML files based in one 
 or more C files, running it in localhost -- all within a single-binary. Carol is meant to be simple, easy,
-fast, fun and reliable.
+fast, fun and reliable -- currently, it's just pretty barebones :).
 
 ## Generating a website
 
@@ -18,7 +18,7 @@ paragraph("and that's how you create a paragraph!");
 
 ```
 
-But, before you can start writing your website in C, you need first to start Carol:
+But, before you can start writing your website in C, you need first to init Carol:
 
 ```c
 
@@ -28,18 +28,18 @@ But, before you can start writing your website in C, you need first to start Car
 
 int main(int argc, char**argv)
 {
-	init(8080);
+	carol_init();
 	return 0;
 }
 
 ```
 
 And that's it! The functions used to build your website such as ```header(const char*)``` or ```paragraph(const char*)```
-must be called within a function called ```loop```, as shown below:
+must be called within a function called ```carol_render```, as shown below:
 
 ```c
 
-void loop(void)
+void carol_render(void)
 {
 	header("Hello, World!");
 	hyperlink("Click Me!", "https://github.com/nobody-but-me/carol");

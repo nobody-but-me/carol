@@ -7,8 +7,8 @@ int paragraph(const char*body_);
 int hyperlink(const char*body_,const char*hyperlink_);
 int image(const char*image_path_);
 
-void render(void);
-int init(void);
+void carol_render(void);
+int carol_init(void);
 
 #endif//CAROL_H
 #ifdef CAROL_IMPLEMENTATION
@@ -287,7 +287,7 @@ static int init_server(int*server_,int*opt_,struct sockaddr_in*server_address_)
 	return 0;
 }
 
-int init(void)
+int carol_init(void)
 {
 	int server; int opt=1;
 	struct sockaddr_in server_addr;
@@ -301,7 +301,7 @@ int init(void)
 			fprintf(stderr,"acception failed");
 			continue;
 		}
-		render();
+		carol_render();
 		handle_client((void*)client);
 	}
 	close(server);
