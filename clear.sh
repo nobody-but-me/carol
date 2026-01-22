@@ -3,5 +3,5 @@
 
 rm -rf ./build/
 
-rm -rf index.html
+rm -rf ./project/
 

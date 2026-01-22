@@ -8,7 +8,8 @@ void carol_render(void){
 	paragraph("welcome to Carol, the header-only C static website generator (now really generating html files)!");
 	hyperlink("Click Me!","https://asgooffeeasme.neocities.org");
 	paragraph("another paragraph! And below an image:");
-	image("media/the_sailor.webp");
+	button("Click Me!");
+	image("the_sailor.webp");
 	return;
 }
 

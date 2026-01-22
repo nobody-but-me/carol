@@ -6,6 +6,7 @@ int header(const char*body_);
 int paragraph(const char*body_);
 int hyperlink(const char*body_,const char*hyperlink_);
 int image(const char*image_path_);
+int button(const char*button_text_);
 
 void carol_render(void);
 int carol_init(void);
@@ -20,6 +21,7 @@ int carol_init(void);
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
@@ -45,7 +47,7 @@ static int concat(char**str_, const char*new_str_){
 }
 
 int initialized=0;
-char last_tag[15];
+char last_tag[16];
 char*idx="";
 
 int header(const char*body_)
@@ -71,7 +73,8 @@ int header(const char*body_)
 	return 0;
 }
 
-int paragraph(const char*body_){
+int paragraph(const char*body_)
+{
 	if(initialized==1)
 		return 1;
 	char*tags="<p>";char*body="";
@@ -93,7 +96,8 @@ int paragraph(const char*body_){
 	return 0;
 }
 
-int hyperlink(const char*body_,const char*hyperlink_){
+int hyperlink(const char*body_,const char*hyperlink_)
+{
 	if(initialized==1)
 		return 1;
 	char*tags="<a href=''>";char*body="";
@@ -115,19 +119,42 @@ int hyperlink(const char*body_,const char*hyperlink_){
 	return 0;
 }
 
-int image(const char*image_path_){
+int button(const char*button_text_)
+{
 	if(initialized==1)
 		return 1;
-	char*tags="<img src=''/>";char*body="";
+	char*tags="<button type='button'>";char*body="";
+	size_t last_tag_length=(sizeof(last_tag)/sizeof(last_tag[0]));
+	size_t new_length=last_tag_length+strlen(tags)+strlen(button_text_)+1;
+	body=(char*)malloc(new_length);
+	if(body==NULL)
+		return -1;
+	if(last_tag_length>2)
+		snprintf(body,new_length,"%s<button type='button'>%s",last_tag,button_text_);
+	else
+		snprintf(body,new_length,"<button type='button'>%s",button_text_);
+	if(body==NULL)
+		return -1;
+	concat(&idx,body);
+	strncpy(last_tag,"</button><br/>",strlen(tags)+1);
+	printf("button element generated.\n");
+	return 0;
+}
+
+int image(const char*image_path_)
+{
+	if(initialized==1)
+		return 1;
+	char*tags="<img src='../media/'/>";char*body="";
 	size_t last_tag_length=(sizeof(last_tag)/sizeof(last_tag[0]));
 	size_t new_length=last_tag_length+strlen(tags)+strlen(image_path_)+1;
 	body=(char*)malloc(new_length);
 	if(body==NULL)
 		return -1;
 	if(last_tag_length>2)
-		snprintf(body,new_length,"%s<img src='%s'/>",last_tag,image_path_);
+		snprintf(body,new_length,"%s<img src='../media/%s'/>",last_tag,image_path_);
 	else
-		snprintf(body,new_length,"<img src='%s'/>",image_path_);
+		snprintf(body,new_length,"<img src='../media/%s'/>",image_path_);
 	if(body==NULL)
 		return -1;
 	concat(&idx,body);
@@ -156,6 +183,8 @@ static const char *get_filetype(const char*file_extension_)
 		return "image/png";
 	else if(strcasecmp(file_extension_,"webp")==0)
 		return "image/webp";
+	else if(strcasecmp(file_extension_,"css")==0)
+		return "text/css";
 	else
 		return "application/octet-stream";
 }
@@ -180,11 +209,13 @@ static char*url_decode(const char*src_)
 	return decoded;
 }
 
-char *html_head="<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Razomentalist</title></head><body>";
+char *html_head="<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>razomentalist</title><link rel='stylesheet' type='text/css' href='index.css'/></head><body>";
 char *html_footer="</body></html>";
 
 static void*handle_client(void*client_)
 {
+	mkdir("project",0777);
+	
 	int client=*((int*)client_);
 	char*buffer=(char*)malloc(DEFAULT_BUFFER_SIZE*sizeof(char));
 	
@@ -200,8 +231,6 @@ static void*handle_client(void*client_)
 			char*file_name=url_decode(encoded);
 			char file_extension[32];
 			strncpy(file_extension,get_file_extension(file_name),32);
-			
-#define PROJECT_FOLDER "../../site/"
 // NOTE: I am adding this conditional mainly because in this
 // way it'll be possible not only to serve and open html files, but 
 // also other files types, such as png, jpg and webp.
@@ -212,14 +241,34 @@ static void*handle_client(void*client_)
 					return NULL;
 				}
 // NOTE: for now it'll only support the index main html file.
-				const char*html_index="index.html";
-				FILE*f=fopen(html_index,"w");
-				if(f){
+				const char*html_index="project/index.html";
+				const char*css_index="project/index.css";
+				FILE*html_file=fopen(html_index,"w");
+				FILE*css_file=fopen(css_index,"w");
+                if(css_file){
+						fputs("\n",css_file);
+					fputs("html {",css_file);						fputs("\n",css_file);
+					fputs("    font-size: 100%;",css_file);			fputs("\n",css_file);
+					fputs("    overflow-y: scroll;",css_file);		fputs("\n",css_file);
+					fputs("    text-size-adjust: 100%;",css_file);	fputs("\n",css_file);
+					fputs("}",css_file);							fputs("\n",css_file);
+						fputs("\n",css_file);
+					fputs("body {",css_file);						fputs("\n",css_file);
+					fputs("    background-color: white;",css_file);	fputs("\n",css_file);
+					fputs("    color: black;",css_file);			fputs("\n",css_file);
+					fputs("    margin: 0;",css_file);				fputs("\n",css_file);
+					fputs("    padding: 0;",css_file);				fputs("\n",css_file);
+					fputs("    font-size: 16px;",css_file);			fputs("\n",css_file);
+					fputs("    line-height: 1.6;",css_file);		fputs("\n",css_file);
+					fputs("}",css_file);							fputs("\n",css_file);
+					fclose(css_file);
+				}
+				if(html_file){
 					printf("writing to html file...\n");
-					fputs(html_head,f);
-						fputs(idx,f);
-					fputs(html_footer,f);
-					fclose(f);
+					fputs(html_head,html_file);
+						fputs(idx,html_file);
+					fputs(html_footer,html_file);
+					fclose(html_file);
 				}
 				initialized=1;
 			}
@@ -283,7 +332,7 @@ static int init_server(int*server_,int*opt_,struct sockaddr_in*server_address_)
 		fprintf(stderr,"listening failed\n");
 		return -1;
 	}
-	printf("listening at http://localhost:%d/index.html\n\n",DEFAULT_PORT);
+	printf("listening at http://localhost:%d/project/index.html\n\n",DEFAULT_PORT);
 	return 0;
 }
 
