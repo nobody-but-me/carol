@@ -8,8 +8,6 @@ read -p " > " run
 
 echo "[INFO]: CREATING BUILD FOLDER..."
 
-# mkdir -p ./project # TODO: this folder must be created by Carol's C header.
-
 mkdir -p ./build && cd ./build
 
 if [ "$build" = "y" ]; then

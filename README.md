@@ -1,4 +1,6 @@
 
+# WARNING: outdated README, going to update soon...
+
 # Carol
 
 Carol is a header-only static website generator written in C programming language. Following the philosophy of 
