@@ -7,4 +7,5 @@ add_executable(carol)
 
 target_sources(carol PRIVATE ${CMAKE_SOURCE_DIR}/main.c)
 
-target_compile_options(carol PRIVATE -Wall -Werror -pedantic)
+# target_compile_options(carol PRIVATE -Wall -Werror -pedantic -Wno-unused-function)
+target_compile_options(carol PRIVATE -Wall -Werror -pedantic -Wno-unused-function -Wno-format)

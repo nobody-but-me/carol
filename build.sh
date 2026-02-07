@@ -14,7 +14,8 @@ mkdir -p ./build && cd ./build
 
 if [ "$build" = "y" ]; then
     echo "[INFO]: GENERATING NINJA FILES..."
-    cmake .. -G Ninja -DCMAKE_C_COMPILER=clang
+#    cmake .. -G Ninja -DCMAKE_C_COMPILER=clang
+	cmake .. -G Ninja -DCMAKE_C_COMPILER=gcc
 fi
 
 echo "[INFO]: BUILDING..."

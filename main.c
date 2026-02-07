@@ -3,17 +3,17 @@
 #include "carol.h"
 #include <stdio.h>
 
-void carol_render(void){
-	header("Welcome, Carol.");
-	paragraph("welcome to Carol, the header-only C static website generator (now really generating html files)!");
-	hyperlink("Click Me!","https://asgooffeeasme.neocities.org");
-	paragraph("another paragraph! And below an image:");
-	button("Click Me!");
-	image("the_sailor.webp");
+void carol_render(void)
+{
+	page index=page_begin("index.html");
+		header("hello, Carol!",&index);
+		para("it's working, isn't it?",&index);
+	page_end(&index);
 	return;
 }
 
-int main(int argc,char**argv){
+int main(int argc,char**argv)
+{
 	if((carol_init())==-1)
 		return -1;
 	return 0;
