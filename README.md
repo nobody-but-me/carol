@@ -1,32 +1,49 @@
 
-# WARNING: outdated README, going to update soon...
+# Carol static website generator
 
-# Carol
+Carol is a simple header-only static website generator written in the C programming language. Following the philosophy
+of [j3s](https://j3s.sh/thought/my-website-is-one-binary.html) and [pigeonhole](https://iwillneverbehappy.neocities.org/site/about),
+Carol generates HTML files based in one or more .c files, running them in localhost -- all within a single-binary.
 
-Carol is a header-only static website generator written in C programming language. Following the philosophy of 
-[j3s](https://j3s.sh/thought/my-website-is-one-binary.html), Carol generates HTML files based in one 
-or more C files, running it in localhost -- all within a single-binary. Carol is meant to be simple, easy,
-fast, fun and reliable -- currently, it's just pretty barebones :).
+Carol is meant to be simple, easy, fast, fun, reliable and straightfoward -- currently being just barebones :)
+
+Carol is licensed under the GNU General Public License v2 (GPLv2), being any contributions more than welcome.
 
 ## Generating a website
 
-Carol mainly works with C functions:
+Carol works with C functions that create HTML elements. Functions like ```header(const char*,page*)``` or ```para(const char*,page*)``` can be called inside
+the pre-declared function ```carol_render(void)``` to generate the desired HTML file:
 
 ```c
 
-header("That's how you create a header!");
+void carol_render(void)
+{
+	/* first you need to create your page, initializing it with the `page_begin(const char*,const char*)` function */
+	page *index;
+	index = page_begin("index.html",NULL);
+	
+	/* now you can just start building your page! */
+	
+		header("Hello, World!", &index);
+		
+		para("I am a paragraph and this little dude above me is a header!", &index);
 
-paragraph("and that's how you create a paragraph!");
+	/* and don't forget to close your page when you're done */
+	
+	page_end(&index);
+	
+}
 
 ```
 
-But, before you can start writing your website in C, you need first to init Carol:
+Now the only thing left to do is to initialize Carol:
 
 ```c
 
 // Since Carol is a header-only library, it must be implemented with the definition of CAROL_IMPLEMENTATION macro.
-#define CAROL_IMPLEMENTATION
-#include "carol.h"
+/* since Carol is a header-only library it must be implemented with the definition of CAROL_IMPLEMENTATION macro */
+#define 	CAROL_IMPLEMENTATION
+#include 	"carol.h"
 
 int main(int argc, char**argv)
 {
@@ -36,17 +53,5 @@ int main(int argc, char**argv)
 
 ```
 
-And that's it! The functions used to build your website such as ```header(const char*)``` or ```paragraph(const char*)```
-must be called within a function called ```carol_render```, as shown below:
-
-```c
-
-void carol_render(void)
-{
-	header("Hello, World!");
-	hyperlink("Click Me!", "https://github.com/nobody-but-me/carol");
-}
-
-```
-
-So then, when running your application, you must already see the localhost address printed in your terminal.
+So now, when running your application, you must already see the localhost address printed in your terminal -- remember to open your HTML file related to
+the ./project/ folder, so: http://localhost:4242/project/[YOUR_HTML_FILE_NAME].hmtl
