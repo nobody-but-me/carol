@@ -14,6 +14,7 @@ typedef struct
 	char*index; // TODO: change its name to buffer
 } page;
 
+void hyperlink(const char*_link,const char*_body,page*_page);
 void header(const char*_body,page*_page);
 void para(const char*_body,page*_page);
 
@@ -55,7 +56,7 @@ void header(const char*_body,page*_page)
 	char*tag="<h1>";char*body;
 	size_t last_tag_length=(sizeof(_page->last_tag)/sizeof(_page->last_tag[0]));
 	
-	size_t new_length=last_tag_length+strlen(tag)+2;
+	size_t new_length=strlen(tag)+strlen(_body)+last_tag_length+2;
 	body=(char*)malloc(new_length);
 	if(body==NULL)
 		return;
@@ -76,7 +77,7 @@ void para(const char*_body,page*_page)
 	char*tag="<p>";char*body;
 	size_t last_tag_length=(sizeof(_page->last_tag)/sizeof(_page->last_tag[0]));
 	
-	size_t new_length=last_tag_length+strlen(tag)+2;
+	size_t new_length=strlen(tag)+strlen(_body)+last_tag_length+2;
 	body=(char*)malloc(new_length);
 	if(body==NULL)
 		return;
@@ -92,6 +93,26 @@ void para(const char*_body,page*_page)
 	printf("paragraph element generated.\n");
 	return;
 }
+void hyperlink(const char*_link,const char*_body,page*_page)
+{
+	char*tag="<a href=''>";char*body;
+	size_t last_tag_length=(sizeof(_page->last_tag)/sizeof(_page->last_tag[0]));
+	
+	size_t new_length=strlen(tag)+strlen(_link)+strlen(_body)+last_tag_length+2;
+	body=(char*)malloc(new_length);
+	if(body==NULL)
+		return;
+	if(last_tag_length>2)
+		snprintf(body,new_length,"%s<a href='%s'>%s",_page->last_tag,_link,_body);
+	else
+		snprintf(body,new_length,"<a href='%s'>%s",_link,_body);
+	if(body==NULL)
+		return;
+	concat(&_page->index,body);
+	strncpy(_page->last_tag,"</a>",strlen(tag)+2);
+	printf("hyperlink element generated.\n");
+	return;
+}
 
 static int concat(char**_str,const char*_new_str)
 {
@@ -99,7 +120,7 @@ static int concat(char**_str,const char*_new_str)
 	{
 		printf("allocating more memory to _str...\n");
 		size_t new_length=strlen(_new_str)+1;
-		*_str=(char*)malloc(new_length);
+		*_str=(char*)malloc(new_length);	
 		if(*_str==NULL)
 		{
 			fprintf(stderr,"failed to allocate memory to _str :: concat \n");
@@ -213,7 +234,7 @@ page page_begin(const char*_page_path)
 void page_end(page*_page)
 {
 	if(_page==NULL)
-		return;
+			return;
 	if(_page->output==NULL)
 	{
 		fprintf(stderr,"can't close  page: page output is NULL.\n");
@@ -252,15 +273,13 @@ static bool handle_client(int**_client)
 			char*filename=url_decode(encoded);
 			char file_extension[32];
 			strncpy(file_extension,get_file_extension(filename),32);
+
+			const char*type=get_filetype(file_extension);
 			
-// rendering the actual html file.
-			if(strcasecmp(file_extension,"html")==0||strcasecmp(file_extension,"htm")==0)
-			{
+			if(strcasecmp(type,"text/html")==0)
 				carol_render();
-			}
 			
 			char*response=(char*)malloc(DEFAULT_BUFFER_SIZE*2*sizeof(char));
-			const char*type=get_filetype(file_extension);
 			char*header=(char*)malloc(DEFAULT_BUFFER_SIZE*sizeof(char));
 			snprintf(header,DEFAULT_BUFFER_SIZE,
 				"HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n",type);

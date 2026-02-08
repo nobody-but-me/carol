@@ -6,8 +6,9 @@
 void carol_render(void)
 {
 	page index=page_begin("index.html");
-		header("hello, Carol!",&index);
+		header("hello, Carol! fjapofgjpagjpagjpaogjpoadgjpadgjpadgjpadgjadpodgjadpogjapdgjadpgjadpogjadpgajpgadjgpoadjgpoadjgpaodgjpoadjgpoadjgpaodj",&index);
 		para("it's working, isn't it?",&index);
+		hyperlink("https://asgooffeeasme.neocities.org","Click Me!",&index);
 	page_end(&index);
 	return;
 }
