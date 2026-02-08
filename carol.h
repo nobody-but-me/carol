@@ -18,7 +18,7 @@ void hyperlink(const char*_link,const char*_body,page*_page);
 void header(const char*_body,page*_page);
 void para(const char*_body,page*_page);
 
-page page_begin(const char*_page_path);
+page page_begin(const char*_page_path,const char*_style_path);
 void page_end(page*_page);
 
 void carol_render(void);
@@ -56,16 +56,21 @@ void header(const char*_body,page*_page)
 	char*tag="<h1>";char*body;
 	size_t last_tag_length=(sizeof(_page->last_tag)/sizeof(_page->last_tag[0]));
 	
-	size_t new_length=strlen(tag)+strlen(_body)+last_tag_length+2;
-	body=(char*)malloc(new_length);
-	if(body==NULL)
-		return;
 	if(_page->last_tag[0]!='\0')
+	{
+		size_t new_length=strlen(tag)+strlen(_body)+last_tag_length+2;
+		body=(char*)malloc(new_length);
+		if(body==NULL)
+			return;
 		snprintf(body,new_length,"%s<h1>%s",_page->last_tag,_body);
-	else
+	} else
+	{
+		size_t new_length=strlen(tag)+strlen(_body)+1;
+		body=(char*)malloc(new_length);
+		if(body==NULL)
+			return;
 		snprintf(body,new_length,"<h1>%s",_body);
-	if(body==NULL)
-		return;
+	}
 	concat(&_page->index,body);
 	strncpy(_page->last_tag,"</h1>",strlen(tag)+2);
 	
@@ -77,14 +82,21 @@ void para(const char*_body,page*_page)
 	char*tag="<p>";char*body;
 	size_t last_tag_length=(sizeof(_page->last_tag)/sizeof(_page->last_tag[0]));
 	
-	size_t new_length=strlen(tag)+strlen(_body)+last_tag_length+2;
-	body=(char*)malloc(new_length);
-	if(body==NULL)
-		return;
-	if(last_tag_length>2)
+	if(_page->last_tag[0]!='\0')
+	{
+		size_t new_length=strlen(tag)+strlen(_body)+last_tag_length+2;
+		body=(char*)malloc(new_length);
+		if(body==NULL)
+			return;
 		snprintf(body,new_length,"%s<p>%s",_page->last_tag,_body);
-	else
+	} else
+	{
+		size_t new_length=strlen(tag)+strlen(_body)+1;
+		body=(char*)malloc(new_length);
+		if(body==NULL)
+			return;
 		snprintf(body,new_length,"<p>%s",_body);
+	}
 	if(body==NULL)
 		return;
 	concat(&_page->index,body);
@@ -98,14 +110,21 @@ void hyperlink(const char*_link,const char*_body,page*_page)
 	char*tag="<a href=''>";char*body;
 	size_t last_tag_length=(sizeof(_page->last_tag)/sizeof(_page->last_tag[0]));
 	
-	size_t new_length=strlen(tag)+strlen(_link)+strlen(_body)+last_tag_length+2;
-	body=(char*)malloc(new_length);
-	if(body==NULL)
-		return;
-	if(last_tag_length>2)
+	if(_page->last_tag[0]!='\0')
+	{
+		size_t new_length=strlen(tag)+strlen(_link)+strlen(_body)+last_tag_length+2;
+		body=(char*)malloc(new_length);
+		if(body==NULL)
+			return;
 		snprintf(body,new_length,"%s<a href='%s'>%s",_page->last_tag,_link,_body);
-	else
+	} else
+	{
+		size_t new_length=strlen(tag)+strlen(_link)+strlen(_body)+1;
+		body=(char*)malloc(new_length);
+		if(body==NULL)
+			return;
 		snprintf(body,new_length,"<a href='%s'>%s",_link,_body);
+	}
 	if(body==NULL)
 		return;
 	concat(&_page->index,body);
@@ -196,15 +215,58 @@ static char*url_decode(const char*_src)
 	return decoded;
 }
 
-char *g_html_header="<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>carol website</title><link rel='stylesheet' type='text/css' href='index.css'/></head><body>";
+char *g_html_header="<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>carol website</title><link rel='stylesheet' type='text/css' href='%s'/></head><body>";
 char *g_html_footer="</body></html>";
 
-page page_begin(const char*_page_path)
+page page_begin(const char*_page_path,const char*_style_path)
 {
+	const char*css_path="project/index.css";
 	const char*prefix="project/";
+	char*final_html_header;
 	page pg;
 	printf("initializing %s page...\n",_page_path);
 	
+	if(_style_path==NULL)
+	{
+		FILE*style_file=fopen(css_path,"w");
+		if(!style_file)
+		{
+			fprintf(stderr,"failed to create or write to styles.css file.\n");
+			pg.output=NULL;
+			return pg;
+		}
+		fputs("										\n",style_file);
+		fputs("body,html {							\n",style_file);
+		fputs("	background-color: 	#FFFDD0;		\n",style_file);
+		fputs("	padding: 			0;				\n",style_file);
+		fputs("	margin:  			5px;			\n",style_file);
+		fputs("	left:	 			0;				\n",style_file);
+		fputs("	top:	 			0;				\n",style_file);
+		fputs("										\n",style_file);
+		fputs("	min-height:			100vh;			\n",style_file);
+		fputs("	min-width:			100vw;			\n",style_file);
+		fputs("}									\n",style_file);
+		fputs("										\n",style_file);
+		fclose(style_file);
+	} else
+	{
+// do something
+		printf("custom style file is not supported yet, although you can easily go into the project/ folder and edit the index.css file.\n");
+	}
+
+// building the final HTML header string
+	size_t html_header_length=strlen(g_html_header)+strlen(css_path)+1;
+	final_html_header=(char*)malloc(html_header_length);
+	if(final_html_header==NULL)
+	{
+		fprintf(stderr,"failed to allocate memory for final HTML header buffer.\n");
+		pg.output=NULL;
+		return pg;
+	}
+	snprintf(final_html_header,html_header_length,g_html_header,"./index.css"); // TODO: hardcoded
+	printf("\nfinal html header: %s\n\n",final_html_header);
+	
+// allocating memory to add prefix to page path
 	size_t final_path_length=strlen(prefix)+strlen(_page_path)+1;
 	char*final_path=(char*)malloc(final_path_length);
 	if(final_path==NULL)
@@ -214,13 +276,16 @@ page page_begin(const char*_page_path)
 		return pg;
 	}
 	snprintf(final_path,final_path_length,"%s%s",prefix,_page_path);
+// writing to the actual HTML file
 	pg.output=fopen(final_path,"w");
 	if(!pg.output)
 	{
 		fprintf(stderr,"could not create %s page.\n",_page_path);
 		return pg;
 	}
-	fputs(g_html_header,pg.output);
+// adding HTML header in it
+//	fputs(g_html_header,pg.output);
+	fputs(final_html_header,pg.output);
 	
 	pg.last_tag[0]='\0';
 	pg.index=NULL;
@@ -359,8 +424,7 @@ int carol_init(void)
 	struct sockaddr_in server_addr;
 	if(init_server(&server,&opt,&server_addr)!=0)
 		return -1;
-	bool client_handled=false;
-	while(client_handled==false)
+	while(true)
 	{
 		struct sockaddr_in client_address;
 		socklen_t client_address_length=sizeof(client_address);
@@ -371,8 +435,7 @@ int carol_init(void)
 			fprintf(stderr,"acception failed");
 			continue;
 		}
-//		carol_render();
-		client_handled=handle_client(&client);
+		handle_client(&client);
 	}
 	close(server);
 	return 0;
