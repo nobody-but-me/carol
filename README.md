@@ -40,7 +40,6 @@ Now the only thing left to do is to initialize Carol:
 
 ```c
 
-// Since Carol is a header-only library, it must be implemented with the definition of CAROL_IMPLEMENTATION macro.
 /* since Carol is a header-only library it must be implemented with the definition of CAROL_IMPLEMENTATION macro */
 #define 	CAROL_IMPLEMENTATION
 #include 	"carol.h"
