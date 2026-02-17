@@ -9,7 +9,23 @@ Carol is meant to be simple, easy, fast, fun, reliable and straightfoward -- cur
 
 Carol is licensed under the GNU General Public License v2 (GPLv2), being any contributions more than welcome.
 
-## Generating a website
+## Installation
+
+Carol is a header-only library, so all you need to do is to include the .h file in your C/C++ project.
+
+If you want to run Carol's example, you just need to run the follow commands in your terminal:
+
+```
+
+ > sh build.sh
+
+# follow the instructions
+
+ > sh run.sh
+
+```
+
+## Creating your website
 
 Carol works with C functions that create HTML elements. Functions like ```header(const char*,page*)``` or ```para(const char*,page*)``` can be called inside
 the pre-declared function ```carol_render(void)``` to generate the desired HTML file:
@@ -18,9 +34,15 @@ the pre-declared function ```carol_render(void)``` to generate the desired HTML 
 
 void carol_render(void)
 {
-	/* first you need to create your page, initializing it with the `page_begin(const char*,const char*)` function */
-	page *index;
-	index = page_begin("index.html",NULL);
+	/* first you need to create a page_conf struct, so you can set basic settings for your website */
+	page_conf config = {
+		.style_path = "index.css", // name of your styles file
+		.html_path  = "index.html", // name of your html file
+		.title      = "carol's page!"
+	};
+	
+	/* now you  just create your page by initializing it with the `page_begin(page_conf*)` function. */
+	page index = page_begin(&config);
 	
 	/* now you can just start building your page! */
 	
@@ -28,7 +50,7 @@ void carol_render(void)
 		
 		para("I am a paragraph and this little dude above me is a header!", &index);
 
-	/* and don't forget to close your page when you're done */
+	/* and, of course, don't forget to close your page when you're done */
 	
 	page_end(&index);
 	
