@@ -25,6 +25,7 @@ typedef struct
 } page;
 
 void hyperlink(const char*_link,const char*_body,page*_page);
+void image(const char*_path,const char*_alt,page*_page);
 void header(const char*_body,page*_page);
 void para(const char*_body,page*_page);
 
@@ -142,6 +143,24 @@ void hyperlink(const char*_link,const char*_body,page*_page)
     printf("hyperlink element generated.\n");
     return;
 }
+void image(const char*_path,const char*_alt,page*_page)
+{
+    char*tag="<img src='' alt=''/>";char*body;
+    // size_t last_tag_length=(sizeof(_page->last_tag)/sizeof(_page->last_tag[0]));
+    
+    size_t new_length=strlen(tag)+strlen(_path)+strlen(_alt)+1;
+    body=(char*)malloc(new_length);
+    if(body==NULL)
+        return;
+    snprintf(body,new_length,"<img src='%s' alt='%s'/>",_path,_alt);
+    if(body==NULL)
+        return;
+    concat(&_page->buffer,body);
+    // strncpy(_page->last_tag,"</a>",strlen(tag)+2);
+    _page->last_tag[0]='\0';
+    printf("image element generated.\n");
+    return;
+}
 
 static int concat(char**_str,const char*_new_str)
 {
@@ -235,7 +254,7 @@ page page_begin(page_conf*_configuration)
     char*final_header;
     page pg;
     
- // TODO: check for empty strings here;
+    // TODO: check for empty strings here;
     pg.configuration=_configuration;
     
     printf("initializing %s page...\n",pg.configuration->html_path);
@@ -273,7 +292,7 @@ page page_begin(page_conf*_configuration)
 	fputs("						\n",st);
 	fclose(st);
     }
-// building the final HTML header string
+    // building the final HTML header string
     size_t header_length=strlen(g_html_header)+strlen(pg.configuration->title)+strlen("./index.css")+1;
     final_header=(char*)malloc(header_length);
     if(final_header==NULL)
@@ -285,7 +304,7 @@ page page_begin(page_conf*_configuration)
     snprintf(final_header,header_length,g_html_header,pg.configuration->title,"./index.css"); // TODO: hardcoded
     printf("\nfinal html header: %s\n\n",final_header);
     
-// allocating memory to add prefix to page path
+    // allocating memory to add prefix to page path
     size_t final_path_length=strlen(prefix)+strlen(pg.configuration->html_path)+1;
     char*final_path=(char*)malloc(final_path_length);
     if(final_path==NULL)
@@ -297,14 +316,14 @@ page page_begin(page_conf*_configuration)
     snprintf(final_path,final_path_length,"%s%s",prefix,pg.configuration->html_path);
     printf("\nfinal path: %s\n\n",final_path);
     
-// writing to the actual HTML file
+    // writing to the actual HTML file
     pg.output=fopen(final_path,"w");
     if(pg.output==NULL)
     {
 	fprintf(stderr,"failed to write to %s.\n",pg.configuration->html_path);
 	return pg;
     }
-// adding HTML header in it
+    // adding HTML header in it
     fputs(final_header,pg.output);
     
     pg.last_tag[0]='\0';
@@ -321,7 +340,7 @@ page page_begin(page_conf*_configuration)
 void page_end(page*_page)
 {
     if(_page==NULL)
-        return;
+    return;
     if(_page->output==NULL)
     {
 	fprintf(stderr,"can't close  page: page output is NULL.\n");
