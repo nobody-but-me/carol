@@ -105,51 +105,6 @@ int add_media(const char*_filepath,const char*_filename)
 	fclose(copy);
 	printf("%s copied successfully to %s.\n",_filepath,final_filename);
 	return 0;
-/*
-	FILE*origin_file,*copy_file;
-	unsigned char buffer[BUFFER_SIZE];
-	size_t br,bw;
-	origin_file=fopen(_filepath,"rb");
-	if(origin_file==NULL)
-	{
-		fprintf(stderr,"failed to open origin file for copy.\n");
-		return -1;
-	}
-	
-	const char*prefix="project/media/";
-	size_t copy_filename_len=strlen(_filename)+strlen(prefix)+1;
-	
-	char*copy_filename=(char*)malloc(copy_filename_len);
-	if(copy_filename==NULL)
-	{
-		fprintf(stderr,"failed to allocate memory for copy filename\n");
-		return -1;
-	}
-	snprintf(copy_filename,copy_filename_len,"%s%s",prefix,_filename);
-	
-	copy_file=fopen(copy_filename,"wb");
-	if(copy_file==NULL)
-	{
-		fprintf(stderr,"failed to open copy file for media.\n");
-		return -1;
-	}
-	printf("copying file to media folder...\n");
-	while((br=fread(buffer,1,BUFFER_SIZE,origin_file))>0)
-	{
-		bw=fwrite(buffer,1,br,copy_file);
-		if(bw!=br)
-		{
-			fprintf(stderr,"failed  to write data to copy file destionation.\n");
-			fclose(origin_file);
-			fclose(copy_file);
-			return -1;
-		}
-	}
-	fclose(origin_file);
-	fclose(copy_file);
-	printf("%s had been successfully copied to %s.\n",_filepath,copy_filename);
-	return 0;
-*/
 }
 
 static int concat(char**_str,const char*_new_str);
@@ -239,7 +194,6 @@ void hyperlink(const char*_link,const char*_body,page*_page)
 void image(const char*_path,const char*_alt,page*_page)
 {
 	char*tag="<img src='' alt=''/>";char*body;
-	// size_t last_tag_length=(sizeof(_page->last_tag)/sizeof(_page->last_tag[0]));
     
 	size_t new_length=strlen(tag)+strlen(_path)+strlen(_alt)+1;
 	body=(char*)malloc(new_length);
@@ -249,7 +203,6 @@ void image(const char*_path,const char*_alt,page*_page)
 	if(body==NULL)
 		return;
 	concat(&_page->buffer,body);
-	// strncpy(_page->last_tag,"</a>",strlen(tag)+2);
 	_page->last_tag[0]='\0';
 	printf("image element generated.\n");
 	return;
@@ -334,7 +287,6 @@ static char*url_decode(const char*_src)
 char *g_html_header="<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>%s</title><link rel='stylesheet' type='text/css' href='%s'/></head><body>";
 char *g_html_footer="</body></html>";
 
-// const char*css_path="project/index.css";
 page page_begin(page_conf*_configuration)
 {
 	const char*prefix="project/";
@@ -383,6 +335,7 @@ page page_begin(page_conf*_configuration)
 	else
 		printf("no stylesheet configured...\n");
 	
+	// NOTE: would it be interesting in the page_end() function?
 	// allocating memory to add prefix to page path
 	size_t final_path_length=strlen(prefix)+strlen(pg.configuration->html_path)+1;
 	char*final_path=(char*)malloc(final_path_length);
@@ -425,7 +378,7 @@ void page_end(page*_page)
 		return;
 	}
 
-	// mounting final header, with title and styles file (hardcoded... for now)
+	// mounting final header, with title and styles file (hardcoded... for now...)
 	size_t header_length=strlen(g_html_header)+strlen(_page->configuration->title)+strlen("./index.css")+1;
 	char*final_header=(char*)malloc(header_length);
 	if(final_header==NULL)
@@ -492,8 +445,6 @@ static bool handle_request(int**_client)
 			}
 			snprintf(header,BUFFER_SIZE,
 	"HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %lld\r\n\r\n",type,(long long)st.st_size);
-//			snprintf(header,BUFFER_SIZE,
-//	"HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n",type);
 			send(**_client,header,strlen(header),0);
 			
 			memcpy(response,header,strlen(header));
