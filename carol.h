@@ -17,7 +17,6 @@ typedef struct
 typedef struct
 {
 	page_conf*configuration;
-	char last_tag[16];
 	
 	FILE*output;
 	char*buffer;
@@ -25,22 +24,28 @@ typedef struct
 
 int add_media(const char*_filepath,const char*_filename);
 
-void hyperlink(const char*_link,const char*_body,page*_page);
-void image(const char*_path,const char*_alt,page*_page);
-void header(const char*_body,page*_page);
-void para(const char*_body,page*_page);
+void add_style_raw(const char*_element,const char*_style,page*_page);
 
-page page_begin(page_conf*_configuration);
-void page_end(page*_page);
+void hyperlink(const char*_link,const char*_body);
+void image(const char*_path,const char*_alt);
 
-void carol_render(void);
+void header(const char*_body);
+void para(const char*_body);
+
+void div_begin(void);
+void div_end(void);
+
+void page_begin(page*_page,page_conf*_config);
+void page_end();
+
+void carol_compose(void);
 int carol_init(void);
 
 #endif//CAROL_H
 #ifdef CAROL_IMPLEMENTATION
 
+#define DEFAULT_PORT 8080
 #define BUFFER_SIZE 8192
-#define DEFAULT_PORT 4242
 
 #include <dirent.h>
 #include <ctype.h>
@@ -60,6 +65,9 @@ int carol_init(void);
 #include <fcntl.h>
 #include <regex.h>
 #include <errno.h>
+
+// globals
+page *current_page=NULL;
 
 int add_media(const char*_filepath,const char*_filename)
 {
@@ -107,104 +115,135 @@ int add_media(const char*_filepath,const char*_filename)
 	return 0;
 }
 
+void add_style_raw(const char*_element,const char*_style,page*_page)
+{
+	printf("add_style() : TODO\n");
+	return;
+}
+
 static int concat(char**_str,const char*_new_str);
 
-void header(const char*_body,page*_page)
+void header(const char*_body)
 {
-	char*tag="<h1>";char*body;
-	size_t last_tag_length=(sizeof(_page->last_tag)/sizeof(_page->last_tag[0]));
-	
-	if(_page->last_tag[0]!='\0')
+	if(current_page==NULL)
 	{
-		size_t new_length=strlen(tag)+strlen(_body)+last_tag_length+2;
-		body=(char*)malloc(new_length);
-		if(body==NULL)
-			return;
-		snprintf(body,new_length,"%s<h1>%s",_page->last_tag,_body);
-	} else
-	{
-		size_t new_length=strlen(tag)+strlen(_body)+1;
-		body=(char*)malloc(new_length);
-		if(body==NULL)
-			return;
-		snprintf(body,new_length,"<h1>%s",_body);
+		fprintf(stderr,"begin a new page first.\n");
+		return;
 	}
-	concat(&_page->buffer,body);
-	strncpy(_page->last_tag,"</h1>",strlen(tag)+2);
+	const char*tag="<h1></h1>";char*element;
 	
+	size_t new_length=strlen(tag)+strlen(_body)+1;
+	element=(char*)malloc(new_length);
+	if(element==NULL)
+		return;
+	snprintf(element,new_length,"<h1>%s</h1>",_body);
+
+	concat(&current_page->buffer,element);
+//	strncpy(current_page->last_tag,"</h1>",strlen(tag)+2);
+	free(element);
 	printf("header element generated.\n");
 	return;
 }
 
-void para(const char*_body,page*_page)
+void para(const char*_body)
 {
-	char*tag="<p>";char*body;
-	size_t last_tag_length=(sizeof(_page->last_tag)/sizeof(_page->last_tag[0]));
-	
-	if(_page->last_tag[0]!='\0')
+	if(current_page==NULL)
 	{
-		size_t new_length=strlen(tag)+strlen(_body)+last_tag_length+2;
-		body=(char*)malloc(new_length);
-		if(body==NULL)
-			return;
-		snprintf(body,new_length,"%s<p>%s",_page->last_tag,_body);
-	} else
-	{
-		size_t new_length=strlen(tag)+strlen(_body)+1;
-		body=(char*)malloc(new_length);
-		if(body==NULL)
-			return;
-		snprintf(body,new_length,"<p>%s",_body);
-	}
-	if(body==NULL)
+		fprintf(stderr,"begin new page first.\n");
 		return;
-	concat(&_page->buffer,body);
-	strncpy(_page->last_tag,"</p>",strlen(tag)+2);
-    
+	}
+	const char*tag="<p></p>";char*element;
+//	size_t last_tag_length=(sizeof(current_page->last_tag)/sizeof(current_page->last_tag[0]));
+	
+	size_t new_length=strlen(tag)+strlen(_body)+1;
+	element=(char*)malloc(new_length);
+	if(element==NULL)
+		return;
+	snprintf(element,new_length,"<p>%s</p>",_body);
+	
+	concat(&current_page->buffer,element);
+//	strncpy(current_page->last_tag,"</p>",strlen(tag)+2);    
+	free(element);
 	printf("paragraph element generated.\n");
 	return;
 }
-void hyperlink(const char*_link,const char*_body,page*_page)
+void hyperlink(const char*_link,const char*_body)
 {
-	char*tag="<a href=''>";char*body;
-	size_t last_tag_length=(sizeof(_page->last_tag)/sizeof(_page->last_tag[0]));
-	
-	if(_page->last_tag[0]!='\0')
+	if(current_page==NULL)
 	{
-		size_t new_length=strlen(tag)+strlen(_link)+strlen(_body)+last_tag_length+2;
-		body=(char*)malloc(new_length);
-		if(body==NULL)
-			return;
-		snprintf(body,new_length,"%s<a href='%s'>%s",_page->last_tag,_link,_body);
-	} else
-	{
-		size_t new_length=strlen(tag)+strlen(_link)+strlen(_body)+1;
-		body=(char*)malloc(new_length);
-		if(body==NULL)
-			return;
-		snprintf(body,new_length,"<a href='%s'>%s",_link,_body);
-	}
-	if(body==NULL)
+		fprintf(stderr,"begin new page first.\n");
 		return;
-	concat(&_page->buffer,body);
-	strncpy(_page->last_tag,"</a>",strlen(tag)+2);
+	}
+	const char*tag="<a href=''></a>";char*element;
+//	size_t last_tag_length=(sizeof(current_page->last_tag)/sizeof(current_page->last_tag[0]));
+
+	size_t new_length=strlen(tag)+strlen(_link)+strlen(_body)+1;
+	element=(char*)malloc(new_length);
+	if(element==NULL)
+		return;
+	snprintf(element,new_length,"<a href='%s'>%s</a>",_link,_body);
+	
+	concat(&current_page->buffer,element);
+//	strncpy(current_page->last_tag,"</a><br>",strlen(tag)+2);
+	free(element);
 	printf("hyperlink element generated.\n");
 	return;
 }
-void image(const char*_path,const char*_alt,page*_page)
+void image(const char*_path,const char*_alt)
 {
-	char*tag="<img src='' alt=''/>";char*body;
+	if(current_page==NULL)
+	{
+		fprintf(stderr,"begin new page first.\n");
+		return;
+	}
+	const char*tag="<img src='' alt=''/>";char*element;
+	
+	const char*path_prefix="/media/";
+	size_t length=strlen(_path)+strlen(path_prefix)+1;
+	char*final_path=(char*)malloc(length);
+	if(final_path==NULL)
+	{
+		fprintf(stderr,"failed to allocate memory to final path buffer.\n");
+		return;
+	}
+	snprintf(final_path,length,"%s%s",path_prefix,_path);
     
-	size_t new_length=strlen(tag)+strlen(_path)+strlen(_alt)+1;
-	body=(char*)malloc(new_length);
-	if(body==NULL)
+	size_t new_length=strlen(tag)+strlen(final_path)+strlen(_alt)+1;
+	element=(char*)malloc(new_length);
+	if(element==NULL)
 		return;
-	snprintf(body,new_length,"<img src='%s' alt='%s'/>",_path,_alt);
-	if(body==NULL)
+	snprintf(element,new_length,"<img src='%s' alt='%s'/>",final_path,_alt);
+	if(element==NULL)
 		return;
-	concat(&_page->buffer,body);
-	_page->last_tag[0]='\0';
+	concat(&current_page->buffer,element);
+	free(final_path);
+	free(element);
 	printf("image element generated.\n");
+	return;
+}
+
+void div_begin(void)
+{
+	if(current_page==NULL)
+	{
+		fprintf(stderr,"begin new page first.\n");
+		return;
+	}
+	const char*element="<div>";
+	concat(&current_page->buffer,element);
+	printf("div element opened.\n");
+	return;
+}
+void div_end(void)
+{
+	if(current_page==NULL)
+	{
+		fprintf(stderr,"begin new page first.\n");
+		return;
+	}
+	const char*element="</div>";
+	concat(&current_page->buffer,element);
+	printf("div element closed.\n");
 	return;
 }
 
@@ -287,34 +326,34 @@ static char*url_decode(const char*_src)
 char *g_html_header="<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>%s</title><link rel='stylesheet' type='text/css' href='%s'/></head><body>";
 char *g_html_footer="</body></html>";
 
-page page_begin(page_conf*_configuration)
+//page page_begin(page_conf*_configuration)
+void page_begin(page*_page,page_conf*_config)
 {
 	const char*prefix="project/";
-	page pg;
 	
 	// TODO: check for empty strings here;
-	pg.configuration=_configuration;
+	_page->configuration=_config;
 	
-	printf("initializing %s page...\n\n",pg.configuration->html_path);
-	if(pg.configuration->style_path!=NULL)
+	printf("initializing %s page...\n\n",_page->configuration->html_path);
+	if(_page->configuration->style_path!=NULL)
 	{
-		size_t style_length=strlen(prefix)+strlen(pg.configuration->style_path)+1;
+		size_t style_length=strlen(prefix)+strlen(_page->configuration->style_path)+1;
 		char*final_style=(char*)malloc(style_length);
 		if(!final_style)
 		{
 			fprintf(stderr,"failed to allocate memory for style buffer.\n");
-			pg.output=NULL;
-			return pg;
+			_page->output=NULL;
+			return;
 		}
-		snprintf(final_style,style_length,"%s%s",prefix,pg.configuration->style_path);
-		pg.configuration->style_path=strdup(final_style);
+		snprintf(final_style,style_length,"%s%s",prefix,_page->configuration->style_path);
+		_page->configuration->style_path=strdup(final_style);
 		
 		FILE*st=fopen(final_style,"w");
 		if(!st)
 		{
 			fprintf(stderr,"failed to create or write to styles.css file.\n");
-			pg.output=NULL;
-			return pg;
+			_page->output=NULL;
+			return;
 		}
 		fputs("										\n",st);
 		fputs("body,html {							\n",st);
@@ -337,67 +376,70 @@ page page_begin(page_conf*_configuration)
 	
 	// NOTE: would it be interesting in the page_end() function?
 	// allocating memory to add prefix to page path
-	size_t final_path_length=strlen(prefix)+strlen(pg.configuration->html_path)+1;
+	size_t final_path_length=strlen(prefix)+strlen(_page->configuration->html_path)+1;
 	char*final_path=(char*)malloc(final_path_length);
 	if(final_path==NULL)
 	{
 		fprintf(stderr,"failed to allocate memory for final page buffer.\n");
-		pg.output=NULL;
-		return pg;
+		_page->output=NULL;
+		return;
 	}
-	snprintf(final_path,final_path_length,"%s%s",prefix,pg.configuration->html_path);
-	pg.configuration->html_path=strdup(final_path);
+	snprintf(final_path,final_path_length,"%s%s",prefix,_page->configuration->html_path);
+	_page->configuration->html_path=strdup(final_path);
 	
-	pg.last_tag[0]='\0';
+//	_page->last_tag[0]='\0';
 	
-	pg.buffer=(char*)malloc(BUFFER_SIZE+1);
-	pg.buffer[0]='\0';
+	_page->buffer=(char*)malloc(BUFFER_SIZE+1);
+	_page->buffer[0]='\0';
 	
-	pg.configuration->initialized=true;
+	_page->configuration->initialized=true;
 	free(final_path);
 	
-	printf("%s page initialized successfully.\n",pg.configuration->html_path);
-	return pg;
+	printf("%s page initialized successfully.\n",_page->configuration->html_path);
+	current_page=_page;
+	return;
 }
 
-void page_end(page*_page)
+void page_end()
 {
-	if(_page==NULL)
-		return;
-	_page->output=fopen(_page->configuration->html_path,"w");
-	if(_page->output==NULL)
-	{
-		fprintf(stderr,"can't close page: page output is NULL.\n");
-		fclose(_page->output);
+	if(current_page==NULL){
+		fprintf(stderr,"no page had been started.\n");
 		return;
 	}
-	if(_page->buffer==NULL)
+	current_page->output=fopen(current_page->configuration->html_path,"w");
+	if(current_page->output==NULL)
+	{
+		fprintf(stderr,"can't close page: page output is NULL.\n");
+		fclose(current_page->output);
+		return;
+	}
+	if(current_page->buffer==NULL)
 	{
 		fprintf(stderr,"page's index is NULL.\n");
-		fclose(_page->output);
+		fclose(current_page->output);
 		return;
 	}
 
 	// mounting final header, with title and styles file (hardcoded... for now...)
-	size_t header_length=strlen(g_html_header)+strlen(_page->configuration->title)+strlen("./index.css")+1;
+	size_t header_length=strlen(g_html_header)+strlen(current_page->configuration->title)+strlen("./index.css")+1;
 	char*final_header=(char*)malloc(header_length);
 	if(final_header==NULL)
 	{
 		fprintf(stderr,"failed to allocate memory to final html header.\n");
-		fclose(_page->output);
+		fclose(current_page->output);
 		return;
 	}
-	snprintf(final_header,header_length,g_html_header,_page->configuration->title,"./index.css");
+	snprintf(final_header,header_length,g_html_header,current_page->configuration->title,"./index.css");
 	
-	fputs(final_header ,_page->output);
-	fputs(_page->buffer,_page->output);
-	fputs(g_html_footer,_page->output);
+	fputs(final_header ,current_page->output);
+	fputs(current_page->buffer,current_page->output);
+	fputs(g_html_footer,current_page->output);
 	
-	fclose(_page->output);
+	fclose(current_page->output);
 	
-	free(_page->configuration->style_path);
-	free(_page->configuration->html_path);
-	free(_page->buffer);
+	free(current_page->configuration->style_path);
+	free(current_page->configuration->html_path);
+	free(current_page->buffer);
 	
 	printf("\npage closed successfully.\n");
 	return;
@@ -428,7 +470,7 @@ static bool handle_request(int**_client)
 			
 			const char*type=get_filetype(file_extension);
 			if(strcasecmp(type,"text/html")==0)
-				carol_render();
+				carol_compose();
 			
 			char*header=(char*)malloc(BUFFER_SIZE*sizeof(char));
 			response=(char*)malloc(BUFFER_SIZE*2*sizeof(char));
