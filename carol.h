@@ -67,7 +67,7 @@ int carol_init(void);
 #include <errno.h>
 
 // globals
-page *current_page=NULL;
+page *g_current_page=NULL;
 
 int add_media(const char*_filepath,const char*_filename)
 {
@@ -125,7 +125,7 @@ static int concat(char**_str,const char*_new_str);
 
 void header(const char*_body)
 {
-	if(current_page==NULL)
+	if(g_current_page==NULL)
 	{
 		fprintf(stderr,"begin a new page first.\n");
 		return;
@@ -138,8 +138,7 @@ void header(const char*_body)
 		return;
 	snprintf(element,new_length,"<h1>%s</h1>",_body);
 
-	concat(&current_page->buffer,element);
-//	strncpy(current_page->last_tag,"</h1>",strlen(tag)+2);
+	concat(&g_current_page->buffer,element);
 	free(element);
 	printf("header element generated.\n");
 	return;
@@ -147,13 +146,12 @@ void header(const char*_body)
 
 void para(const char*_body)
 {
-	if(current_page==NULL)
+	if(g_current_page==NULL)
 	{
 		fprintf(stderr,"begin new page first.\n");
 		return;
 	}
 	const char*tag="<p></p>";char*element;
-//	size_t last_tag_length=(sizeof(current_page->last_tag)/sizeof(current_page->last_tag[0]));
 	
 	size_t new_length=strlen(tag)+strlen(_body)+1;
 	element=(char*)malloc(new_length);
@@ -161,21 +159,19 @@ void para(const char*_body)
 		return;
 	snprintf(element,new_length,"<p>%s</p>",_body);
 	
-	concat(&current_page->buffer,element);
-//	strncpy(current_page->last_tag,"</p>",strlen(tag)+2);    
+	concat(&g_current_page->buffer,element);
 	free(element);
 	printf("paragraph element generated.\n");
 	return;
 }
 void hyperlink(const char*_link,const char*_body)
 {
-	if(current_page==NULL)
+	if(g_current_page==NULL)
 	{
 		fprintf(stderr,"begin new page first.\n");
 		return;
 	}
 	const char*tag="<a href=''></a>";char*element;
-//	size_t last_tag_length=(sizeof(current_page->last_tag)/sizeof(current_page->last_tag[0]));
 
 	size_t new_length=strlen(tag)+strlen(_link)+strlen(_body)+1;
 	element=(char*)malloc(new_length);
@@ -183,15 +179,14 @@ void hyperlink(const char*_link,const char*_body)
 		return;
 	snprintf(element,new_length,"<a href='%s'>%s</a>",_link,_body);
 	
-	concat(&current_page->buffer,element);
-//	strncpy(current_page->last_tag,"</a><br>",strlen(tag)+2);
+	concat(&g_current_page->buffer,element);
 	free(element);
 	printf("hyperlink element generated.\n");
 	return;
 }
 void image(const char*_path,const char*_alt)
 {
-	if(current_page==NULL)
+	if(g_current_page==NULL)
 	{
 		fprintf(stderr,"begin new page first.\n");
 		return;
@@ -215,7 +210,7 @@ void image(const char*_path,const char*_alt)
 	snprintf(element,new_length,"<img src='%s' alt='%s'/>",final_path,_alt);
 	if(element==NULL)
 		return;
-	concat(&current_page->buffer,element);
+	concat(&g_current_page->buffer,element);
 	free(final_path);
 	free(element);
 	printf("image element generated.\n");
@@ -224,25 +219,25 @@ void image(const char*_path,const char*_alt)
 
 void div_begin(void)
 {
-	if(current_page==NULL)
+	if(g_current_page==NULL)
 	{
 		fprintf(stderr,"begin new page first.\n");
 		return;
 	}
 	const char*element="<div>";
-	concat(&current_page->buffer,element);
+	concat(&g_current_page->buffer,element);
 	printf("div element opened.\n");
 	return;
 }
 void div_end(void)
 {
-	if(current_page==NULL)
+	if(g_current_page==NULL)
 	{
 		fprintf(stderr,"begin new page first.\n");
 		return;
 	}
 	const char*element="</div>";
-	concat(&current_page->buffer,element);
+	concat(&g_current_page->buffer,element);
 	printf("div element closed.\n");
 	return;
 }
@@ -387,8 +382,6 @@ void page_begin(page*_page,page_conf*_config)
 	snprintf(final_path,final_path_length,"%s%s",prefix,_page->configuration->html_path);
 	_page->configuration->html_path=strdup(final_path);
 	
-//	_page->last_tag[0]='\0';
-	
 	_page->buffer=(char*)malloc(BUFFER_SIZE+1);
 	_page->buffer[0]='\0';
 	
@@ -396,50 +389,50 @@ void page_begin(page*_page,page_conf*_config)
 	free(final_path);
 	
 	printf("%s page initialized successfully.\n",_page->configuration->html_path);
-	current_page=_page;
+	g_current_page=_page;
 	return;
 }
 
 void page_end()
 {
-	if(current_page==NULL){
+	if(g_current_page==NULL){
 		fprintf(stderr,"no page had been started.\n");
 		return;
 	}
-	current_page->output=fopen(current_page->configuration->html_path,"w");
-	if(current_page->output==NULL)
+	g_current_page->output=fopen(g_current_page->configuration->html_path,"w");
+	if(g_current_page->output==NULL)
 	{
 		fprintf(stderr,"can't close page: page output is NULL.\n");
-		fclose(current_page->output);
+		fclose(g_current_page->output);
 		return;
 	}
-	if(current_page->buffer==NULL)
+	if(g_current_page->buffer==NULL)
 	{
 		fprintf(stderr,"page's index is NULL.\n");
-		fclose(current_page->output);
+		fclose(g_current_page->output);
 		return;
 	}
 
 	// mounting final header, with title and styles file (hardcoded... for now...)
-	size_t header_length=strlen(g_html_header)+strlen(current_page->configuration->title)+strlen("./index.css")+1;
+	size_t header_length=strlen(g_html_header)+strlen(g_current_page->configuration->title)+strlen("./index.css")+1;
 	char*final_header=(char*)malloc(header_length);
 	if(final_header==NULL)
 	{
 		fprintf(stderr,"failed to allocate memory to final html header.\n");
-		fclose(current_page->output);
+		fclose(g_current_page->output);
 		return;
 	}
-	snprintf(final_header,header_length,g_html_header,current_page->configuration->title,"./index.css");
+	snprintf(final_header,header_length,g_html_header,g_current_page->configuration->title,"./index.css");
 	
-	fputs(final_header ,current_page->output);
-	fputs(current_page->buffer,current_page->output);
-	fputs(g_html_footer,current_page->output);
+	fputs(final_header ,g_current_page->output);
+	fputs(g_current_page->buffer,g_current_page->output);
+	fputs(g_html_footer,g_current_page->output);
 	
-	fclose(current_page->output);
+	fclose(g_current_page->output);
 	
-	free(current_page->configuration->style_path);
-	free(current_page->configuration->html_path);
-	free(current_page->buffer);
+	free(g_current_page->configuration->style_path);
+	free(g_current_page->configuration->html_path);
+	free(g_current_page->buffer);
 	
 	printf("\npage closed successfully.\n");
 	return;
