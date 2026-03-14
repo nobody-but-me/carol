@@ -29,6 +29,8 @@ void add_style_raw(const char*_element,const char*_style,page*_page);
 void hyperlink(const char*_link,const char*_body);
 void image(const char*_path,const char*_alt);
 
+void link_image(const char*_link,const char*_path,const char*_alt);
+
 void header(const char*_body);
 void para(const char*_body);
 
@@ -188,7 +190,7 @@ void image(const char*_path,const char*_alt)
 {
 	if(g_current_page==NULL)
 	{
-		fprintf(stderr,"begin new page first.\n");
+		fprintf(stderr,"begin a new page first.\n");
 		return;
 	}
 	const char*tag="<img src='' alt=''/>";char*element;
@@ -214,6 +216,40 @@ void image(const char*_path,const char*_alt)
 	free(final_path);
 	free(element);
 	printf("image element generated.\n");
+	return;
+}
+void link_image(const char*_link,const char*_path,const char*_alt)
+{
+	if(g_current_page==NULL)
+	{
+		fprintf(stderr,"begin a new page first.\n");
+		return;
+	}
+	const char*tag="<a href=''><img src='' alt=''/></a>";
+	const char*path_prefix="/media/";
+	size_t length=strlen(_path)+strlen(path_prefix)+1;
+	char*final_path=(char*)malloc(length);
+	if(final_path==NULL)
+	{
+		fprintf(stderr,"failed to allocate memory to final path.\n");
+		return;
+	}
+	snprintf(final_path,length,"%s%s",path_prefix,_path);
+	
+	size_t new_length=strlen(tag)+strlen(_link)+strlen(final_path)+strlen(_alt)+1;
+	char*element=(char*)malloc(new_length);
+	if(element==NULL)
+	{
+		fprintf(stderr,"failed to allocate  memory to element.\n");
+		return;
+	}
+	snprintf(element,new_length,"<a href='%s'><img src='%s' alt='%s'/></a>",_link,final_path,_alt);
+	if(element==NULL)
+		return;
+	concat(&g_current_page->buffer,element);
+	free(final_path);
+	free(element);
+	printf("link image elemente generated.\n");
 	return;
 }
 

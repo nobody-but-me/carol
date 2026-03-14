@@ -35,10 +35,11 @@ void carol_compose(void)
         header("Hello, Carol!");
 		para("Congrats, you just generated your first HTML files with Carol! Now you can experiment a little, play around, add some more elements!");
 		hyperlink("https://github.com/nobody-but-me/carol.git","Click me to go to the Carol repository");
-		image("the_sailor.png","the sailor");
+//		image("the_sailor.png","the sailor");
 		div_begin();
 			para("this paragraph should be inside a div element");
 		div_end();
+		link_image("https://github.com/nobody-but-me/carol.git","the_sailor.png","the crazy sailor");
     page_end();
     return;
 }
