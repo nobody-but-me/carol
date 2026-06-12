@@ -32,17 +32,18 @@ the pre-declared function ```carol_render(void)``` to generate the desired HTML 
 
 ```c
 
-void carol_render(void)
+void carol_compose(void)
 {
-	/* first you need to create a page_conf struct, so you can set basic settings for your website */
-	page_conf config = {
-		.style_path = "index.css", // name of your styles file
-		.html_path  = "index.html", // name of your html file
-		.title      = "carol's page!"
-	};
+	/* First, let's create a variable that will be your html page */
+	page index;
 	
-	/* now you  just create your page by initializing it with the `page_begin(page_conf*)` function. */
-	page index = page_begin(&config);
+	/* Now we create the configuration for this page*/
+	page_conf index_config;
+	/* To initialize this page_conf variable, we use the `create_configuration([PAGE_TITLE],[HTML_FILE_NAME],[CSS_FILE_NAME],[CONFIG])` function */
+	create_configuration("Cool page title!", get_var_name(index), "index.css", &index_config);
+	
+	/* now you just create your page by initializing it with the `page_begin([PAGE], [PAGE_CONFIG])` function. */
+	page_begin(&index, &config);
 	
 	/* now you can just start building your page! */
 	
@@ -74,5 +75,5 @@ int main(int argc, char**argv)
 
 ```
 
-So now, when running your application, you must already see the localhost address printed in your terminal -- remember to open your HTML file related to
+So then, when running your application, you must already see the localhost address printed in your terminal -- remember to open your HTML file related to
 the ./project/ folder, so: http://localhost:4242/project/[YOUR_HTML_FILE_NAME].hmtl

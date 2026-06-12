@@ -1,43 +1,24 @@
 
-#define _GNU_SOURCE
+#include <stdio.h>
+
 #define CAROL_IMPLEMENTATION
 #include "carol.h"
-#include <stdio.h>
-/*
 
-const char*background="background-color: red;";
-
-div_begin(background,&index);
-div_end(&index);
-
-
-header("hello, carol!","background-color: red;",&index);
-
-header("hello, carol!",background,&index);
-para("hello hello  hi",background,&index);
-
-add_style_raw("h1","background-color: red;",&index);
-add_style(CAROL_HEADERS,CAROL_BACKGROUND,"red",&index);
-
-*/
 void carol_compose(void)
 {
-    add_media("media/the_sailor.png","the_sailor.png");
-    
-    page_conf configuration={
-		.style_path="index.css",
-		.html_path="index.html",
-		.title="Carol Website"
-    };    
+	add_media("media/the_sailor.png","the_sailor.png");
+
 	page index;
+	
+	page_conf configuration;
+	create_configuration("Carol Website","index","index",&configuration);
 	
 	page_begin(&index,&configuration);
         header("Hello, Carol!");
 		para("Congrats, you just generated your first HTML files with Carol! Now you can experiment a little, play around, add some more elements!");
 		hyperlink("https://github.com/nobody-but-me/carol.git","Click me to go to the Carol repository");
-//		image("the_sailor.png","the sailor");
 		div_begin();
-			para("this paragraph should be inside a div element");
+			para("and this paragraph should be inside a div element");
 		div_end();
 		link_image("https://github.com/nobody-but-me/carol.git","the_sailor.png","the crazy sailor");
     page_end();
