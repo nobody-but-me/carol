@@ -39,7 +39,7 @@ void para(const char*_body);
 void div_begin(void);
 void div_end(void);
 
-void create_configuration(const char*_page_title, const char *_page_name, const char *_style_name, page_conf*_configuration);
+int create_configuration(const char*_page_title, const char *_page_name, const char *_style_name, page_conf*_configuration);
 
 void page_begin(page*_page,page_conf*_config);
 void page_end();
@@ -94,6 +94,7 @@ int add_media(const char*_filepath,const char*_filename)
 	if ((concat(&final_filename,_filename))==-1)
 	{
 		fprintf(stderr,"failed to allocate memory to final filename.\n");
+		free(final_filename);
 		return -1;
 	}
 	
@@ -102,6 +103,7 @@ int add_media(const char*_filepath,const char*_filename)
     if(copy==NULL)
     {
         fprintf(stderr,"failed opening copy file.\n");
+		free(final_filename);
         return -1;
     }
 
@@ -111,6 +113,7 @@ int add_media(const char*_filepath,const char*_filename)
         if(fwrite(buffer,1,br,copy)!=br)
         {
             fprintf(stderr,"failed writing to copy file.\n");
+			free(final_filename);
             fclose(origin);
             fclose(copy);
             return -1;
@@ -144,7 +147,7 @@ void header(const char*_body)
 	if(element==NULL)
 		return;
     snprintf(element,new_length,"<h1>%s</h1>",_body);
-
+	
     concat(&g_current_page->buffer,element);
     free(element);
     printf("header element generated.\n");
@@ -205,16 +208,25 @@ void image(const char*_path,const char*_alt)
 	if ((concat(&final_path,_path))==-1)
 	{
 		fprintf(stderr,"failed to concat final path buffer.\n");
+		free(final_path);
 		return;
 	}
     
     size_t new_length=strlen(tag)+strlen(final_path)+strlen(_alt)+1;
     element=(char*)malloc(new_length);
     if(element==NULL)
+	{
+		fprintf(stderr,"failed to allocate memory for image element.\n");
+		free(final_path);
 		return;
+	}
     snprintf(element,new_length,"<img src='%s' alt='%s'/>",final_path,_alt);
     if(element==NULL)
+	{
+		fprintf(stderr,"failed to mount final image element.\n");
+		free(final_path);
 		return;
+	}
     concat(&g_current_page->buffer,element);
     free(final_path);
     free(element);
@@ -234,6 +246,7 @@ void link_image(const char*_link,const char*_path,const char*_alt)
 	if ((concat(&final_path,_path))==-1)
 	{
 		fprintf(stderr,"failed to concat final path.\n");
+		free(final_path);
 		return;
 	}
 
@@ -242,11 +255,16 @@ void link_image(const char*_link,const char*_path,const char*_alt)
     if(element==NULL)
     {
         fprintf(stderr,"failed to allocate  memory to element.\n");
+		free(final_path);
         return;
     }
     snprintf(element,new_length,"<a href='%s'><img src='%s' alt='%s'/></a>",_link,final_path,_alt);
     if(element==NULL)
-    return;
+	{
+		fprintf(stderr,"failed to mount final link image element.\n");
+		free(final_path);
+		return;
+	}
     concat(&g_current_page->buffer,element);
     free(final_path);
     free(element);
@@ -279,8 +297,32 @@ void div_end(void)
     return;
 }
 
+// USE WITH CAUTION: the final _str MUST BE FREED after use.
 static int concat(char**_str,const char*_new_str)
 {
+	// TODO: error messages;
+	if (_new_str == NULL)
+		return -1;
+	if (*_str == NULL)
+		return -1;
+	size_t length_new = strlen(_new_str);
+	size_t length_old = strlen(*_str);
+	
+	char *new_string = (char*)malloc(length_old + length_new + 1);
+	if (new_string==NULL)
+	{
+		fprintf(stderr,"failed to allocate memory for new string.\n");
+		return -1;
+	}
+	memcpy(new_string,*_str,length_old);
+	memcpy(new_string + length_old, _new_str, length_new + 1);
+	
+	free(*_str);
+	*_str = new_string;
+	
+	return 0;
+	
+/*
 	if(*_str==NULL)
 	{
 		fprintf(stderr,"_str is NULL.\n");
@@ -297,14 +339,22 @@ static int concat(char**_str,const char*_new_str)
 		return -1;
 	strcpy(old_str,*_str);
 	
-	*_str=NULL; *_str=(char*)malloc(new_length);
+	free(*_str);
+	*_str=(char*)malloc(new_length);
 	if(*_str==NULL)
+	{
+		free(old_str);
     	return -1;
+	}
 	snprintf(*_str,new_length,"%s%s",old_str,_new_str);
 	if(*_str==NULL)
+	{
+		free(old_str);
     	return -1;
+	}
 	free(old_str);
 	return 0;
+*/
 }
 
 static const char*get_file_extension(const char*_filename)
@@ -337,6 +387,11 @@ static char*url_decode(const char*_src)
 {
     size_t src_length=strlen(_src);
     char*decoded=malloc(src_length+1);
+	if (decoded==NULL)
+	{
+		fprintf(stderr,"failed to allocate memory for decoded URL.\n");
+		return NULL;
+	}
     size_t decoded_length=0;
 
     for(size_t i=0;i<src_length;i++)
@@ -360,11 +415,26 @@ static char*url_decode(const char*_src)
 // NOTE : do not know if this function will last so long, but I don't think it's very pratical to create a configuration
 //        struct everytime I want to create a page. As the number of possible configuration for the user over the page,
 //        increases, more this function will becoming unfeasible and unmanageable.
-void create_configuration(const char*_page_title,const char*_page_name,const char*_style_name,page_conf*_configuration)
+int create_configuration(const char*_page_title,const char*_page_name,const char*_style_name,page_conf*_configuration)
 {
 	char*final_page_name = strdup(_page_name); char*final_style_name = strdup(_style_name);
-	concat(&final_style_name,".css");
-	concat(&final_page_name,".html");
+	if (final_page_name==NULL || final_style_name==NULL)
+	{
+		fprintf(stderr,"failed to strdup final_page_name and/or final_style_name");
+		return -1;
+	}
+	if ((concat(&final_style_name,".css"))==-1)
+	{
+		fprintf(stderr,"failed to concat final style file name.\n");
+		free(final_style_name);
+		return -1;
+	}
+	if ((concat(&final_page_name,".html"))==-1)
+	{
+		fprintf(stderr,"failed to concat final page file name.\n");
+		free(final_page_name);
+		return -1;
+	}
 	
 	_configuration->style_path = strdup(final_style_name);
 	_configuration->html_path = strdup(final_page_name);
@@ -372,13 +442,12 @@ void create_configuration(const char*_page_title,const char*_page_name,const cha
 	
 	free(final_style_name);
 	free(final_page_name);
-	return;
+	return 0;
 }
 
 char *g_html_header="<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>%s</title><link rel='stylesheet' type='text/css' href='%s'/></head><body>";
 char *g_html_footer="</body></html>";
 
-//page page_begin(page_conf*_configuration)
 void page_begin(page*_page,page_conf*_config)
 {
     const char*prefix="project/";
@@ -390,18 +459,40 @@ void page_begin(page*_page,page_conf*_config)
     if(_page->configuration->style_path!=NULL)
     {
 		char*final_style=strdup(prefix);
+		if (final_style==NULL)
+		{
+			fprintf(stderr,"failed to strdup final_style.\n");
+			_page->output = NULL;
+			return;
+		}
 		if ((concat(&final_style,_page->configuration->style_path))==-1)
 		{
 			fprintf(stderr, "failed to concat final style buffer.\n");
 			_page->output = NULL;
+			free(final_style);
 			return;
 		}
+		if (_page->configuration->style_path != NULL)
+		{
+			free(_page->configuration->style_path);
+		}
         _page->configuration->style_path=strdup(final_style);
-
+		if (_page->configuration->style_path==NULL)
+		{
+			fprintf(stderr,"failed to strdup style_path");
+			_page->output = NULL;
+			free(final_style);
+			return;
+		}
+		
         FILE*st=fopen(final_style,"w");
-        if(!st)
+        if(st==NULL)
         {
             fprintf(stderr,"failed to create or write to styles.css file.\n");
+			
+			free(_page->configuration->style_path);
+			free(final_style);
+			
             _page->output=NULL;
             return;
         }
@@ -423,31 +514,42 @@ void page_begin(page*_page,page_conf*_config)
         fclose(st);
     }
     else
-    printf("no stylesheet configured...\n");
-
-    // NOTE: would it be interesting in the page_end() function?
-    // allocating memory to add prefix to page path
-/*	
-    size_t final_path_length=strlen(prefix)+strlen(_page->configuration->html_path)+1;
-    char*final_path=(char*)malloc(final_path_length);
-    if(final_path==NULL)
-    {
-        fprintf(stderr,"failed to allocate memory for final page buffer.\n");
-        _page->output=NULL;
-        return;
-    }
-    snprintf(final_path,final_path_length,"%s%s",prefix,_page->configuration->html_path);
-*/
+		printf("no stylesheet configured...\n");
 	char*final_path = strdup(prefix);
+	if (final_path==NULL)
+	{
+		fprintf(stderr,"failed to strdup final_path.\n");
+		_page->output=NULL;
+		return;
+	}
 	if ((concat(&final_path,_page->configuration->html_path))==-1)
 	{
 		fprintf(stderr,"failed to allocate concat final path buffer.\n");
 		_page->output=NULL;
+		free(final_path);
 		return;
 	}
+	if (_page->configuration->html_path!=NULL)
+	{
+		free(_page->configuration->html_path);
+	}
     _page->configuration->html_path=strdup(final_path);
+	if (_page->configuration->html_path == NULL)
+	{
+		fprintf(stderr,"failed to strdup html_path.\n");
+		_page->output=NULL;
+		free(final_path);
+		return;
+	}
 
     _page->buffer=(char*)malloc(BUFFER_SIZE+1);
+	if (_page->buffer == NULL)
+	{	
+		fprintf(stderr,"failed to allocate memory to final buffer.\n");
+		_page->output = NULL;
+		free(final_path);
+		return;
+	}
     _page->buffer[0]='\0';
 
     _page->configuration->initialized=true;
@@ -468,7 +570,6 @@ void page_end()
     if(g_current_page->output==NULL)
     {
         fprintf(stderr,"can't close page: page output is NULL.\n");
-        fclose(g_current_page->output);
         return;
     }
     if(g_current_page->buffer==NULL)
@@ -479,12 +580,18 @@ void page_end()
     }
 
     // mounting final header, with title and styles file (hardcoded... for now...)
+	printf("\n > %s.\n",g_current_page->configuration->style_path);
     size_t header_length=strlen(g_html_header)+strlen(g_current_page->configuration->title)+strlen("./index.css")+1;
     char*final_header=(char*)malloc(header_length);
     if(final_header==NULL)
     {
         fprintf(stderr,"failed to allocate memory to final html header.\n");
         fclose(g_current_page->output);
+		free(g_current_page->buffer);
+		
+		free(g_current_page->configuration->style_path);
+		free(g_current_page->configuration->html_path);
+		free(g_current_page->configuration->title);
         return;
     }
     snprintf(final_header,header_length,g_html_header,g_current_page->configuration->title,"./index.css");
@@ -499,17 +606,24 @@ void page_end()
     free(g_current_page->configuration->html_path);
 	free(g_current_page->configuration->title);
     free(g_current_page->buffer);
+	
+	free(final_header);
 
     printf("\npage closed successfully.\n");
     return;
 }
 
-static bool handle_request(int**_client)
+static bool handle_request(int*_client)
 {
     char*buffer=(char*)malloc(BUFFER_SIZE*sizeof(char)+1);
+	if (buffer == NULL)
+	{
+		fprintf(stderr,"failed to allocate memory for final buffer.\n");
+		return false;
+	}
     char*response;
 
-    ssize_t received=recv(**_client,buffer,BUFFER_SIZE,0);
+    ssize_t received=recv(*_client,buffer,BUFFER_SIZE,0);
     if(received>0)
     {
         buffer[received]='\0';
@@ -523,30 +637,57 @@ static bool handle_request(int**_client)
             buffer[matches[1].rm_eo]='\0';
             const char*encoded=buffer+matches[1].rm_so;
             char*filename=url_decode(encoded);
+			if (filename==NULL)
+			{
+				fprintf(stderr,"failed to url decode filename.\n");
+				free(buffer);
+				
+				regfree(&reg);
+				return false;
+			}
             char file_extension[32];
             strncpy(file_extension,get_file_extension(filename),31);
+			if (file_extension[0]=='\0')
+			{
+				fprintf(stderr,"failed to strncpy file_extension.\n");
+				regfree(&reg);
+				free(buffer);
+				return false;
+			}
             file_extension[31]='\0';
 
             const char*type=get_filetype(file_extension);
             if(strcasecmp(type,"text/html")==0)
-            carol_compose();
+				carol_compose();
 
             char*header=(char*)malloc(BUFFER_SIZE*sizeof(char));
             response=(char*)malloc(BUFFER_SIZE*2*sizeof(char));
 
             int file=open(filename,O_RDONLY);
             if(file==-1)
-            goto ERROR_404;
+			{
+				free(filename);
+				free(response);
+				free(header);
+				
+				regfree(&reg);
+				goto ERROR_404;
+			}
 
             struct stat st;
             if((fstat(file,&st))==-1)
             {
+				free(filename);
+				free(response);
+				free(header);
                 close(file);
+				
+				regfree(&reg);
                 goto ERROR_404;
             }
             snprintf(header,BUFFER_SIZE,
-            "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %lld\r\n\r\n",type,(long long)st.st_size);
-            send(**_client,header,strlen(header),0);
+				"HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %lld\r\n\r\n",type,(long long)st.st_size);
+			send(*_client,header,strlen(header),0);
 
             memcpy(response,header,strlen(header));
             ssize_t bytes_read;
@@ -555,9 +696,17 @@ static bool handle_request(int**_client)
                 ssize_t total=0;
                 while(total<bytes_read)
                 {
-                    ssize_t sent=send(**_client,buffer+total,bytes_read-total,0);
+                    ssize_t sent=send(*_client,buffer+total,bytes_read-total,0);
                     if(sent<=0)
-                    return false;
+					{
+						free(buffer); free(header);
+						free(response);
+						free(filename);
+						close(file);
+						
+						regfree(&reg);
+						return false;
+					}
                     total+=sent;
                 }
             }
@@ -568,15 +717,22 @@ static bool handle_request(int**_client)
         }
         regfree(&reg);
     }
-    shutdown(**_client, SHUT_WR);
-    close(**_client);
+    shutdown(*_client, SHUT_WR);
+    close(*_client);
     free(buffer);
 
     printf("request handled successfully.\n");
     return true;
 ERROR_404:
+	if (response == NULL)
+	{
+		response = (char*)malloc(BUFFER_SIZE * 2 * sizeof(char));
+	}
     snprintf(response,BUFFER_SIZE,
-    "HTTP/1.1 404 Not Found\r\nContext-Type: text/html\r\n\r\n<h1>404 Not Found</h1>");
+		"HTTP/1.1 404 Not Found\r\nContext-Type: text/html\r\n\r\n<h1>404 Not Found</h1>");
+	shutdown(*_client, SHUT_WR);
+	close(*_client);
+	free(buffer);
     return false;
 }
 
@@ -587,7 +743,7 @@ static int init_server(int*_server,int*_opt,struct sockaddr_in*_server_address)
         fprintf(stderr,"socket failed.\n");
         return -1;
     }
-    if(setsockopt(*_server,SOL_SOCKET,SO_REUSEADDR,&_opt,sizeof(*_opt))<0)
+    if(setsockopt(*_server,SOL_SOCKET,SO_REUSEADDR,_opt,sizeof(*_opt))<0)
     {
         fprintf(stderr,"socket opt setting failed.\n");
         return -1;
@@ -623,9 +779,9 @@ int carol_init(void)
     {
         struct sockaddr_in client_address;
         socklen_t client_address_length=sizeof(client_address);
-        int*client=malloc(sizeof(int));
-
-        if((*client=accept(server,(struct sockaddr*)&client_address,&client_address_length))<0)
+//        int*client=malloc(sizeof(int));
+		int client;
+        if((client=accept(server,(struct sockaddr*)&client_address,&client_address_length))<0)
         {
             fprintf(stderr,"acception failed");
             continue;
