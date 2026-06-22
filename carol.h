@@ -22,9 +22,7 @@ typedef struct
     
     FILE*output;
     
-    struct element first;
-    struct element last;
-    // char*buffer;
+    char*buffer;
 } page;
 
 int add_media(const char*_filepath,const char*_filename);
